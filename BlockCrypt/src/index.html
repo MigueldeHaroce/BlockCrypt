@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Password Keychain</title>
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
+    <input type="text" id="idInput" placeholder="Enter your ID" />
+    <input type="text" id="passwordInput" placeholder="Enter your password" />
+    <button id="saveForm">Save Password</button>
+    <button id="retrieveForm">Retrieve Passwords</button>
+
+    <div id="passwordOutput"></div>
+
+    <script>
+
+      // Save password button click event
+      document.getElementById('saveForm').addEventListener('click', () => {
+        const id = document.getElementById('idInput').value;
+        const password = document.getElementById('passwordInput').value;
+        console.log('Password value:', password); // Log password value
+        var data = {
+          id: id,
+          password: password
+        }                                                                                                    
+        ipcRenderer.send('save-password', data);
+      });
+      // Retrieve passwords button click event
+      document.getElementById('retrieveForm').addEventListener('click', () => {
+        const ido = document.getElementById('idInput').value;
+        ipcRenderer.send('retrieve-passwords', ido);
+      });
+
+      // Handle password saved event
+      ipcRenderer.on('password-saved', (event, message) => {
+        alert(message);
+      });
+
+      // Handle password retrieval response
+      ipcRenderer.on('passwords-retrieved', (event, passwords) => {
+        const outputDiv = document.getElementById('passwordOutput');
+        outputDiv.innerHTML = `<p>Passwords:</p><pre>${passwords}</pre>`;
+      });
+
+      // Handle errors
+      ipcRenderer.on('password-save-error', (event, errorMessage) => {
+        alert(errorMessage);
+      });
+
+      ipcRenderer.on('password-retrieve-error', (event, errorMessage) => {
+        alert(errorMessage);
+      });
+    </script>
+  </body>
+</html>
