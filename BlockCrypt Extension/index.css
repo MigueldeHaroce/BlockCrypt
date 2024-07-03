@@ -1,0 +1,119 @@
+@font-face {
+  font-family: 'ABeeZee';
+  src: url('recourses/ABeeZee-Regular.ttf');
+}
+
+
+#mainContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  background-color: rgba(30, 30, 30, 1);
+  border: 4px solid #152F35;
+  border-radius: 9px;
+  font-family: 'ABeeZee', sans-serif;
+}
+
+#password-form {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+
+#password-form label {
+  color: white;
+}
+
+#password-form input {
+  border: none;
+  border-radius: 5px;
+  padding: 5px;
+  margin-bottom: 10px;
+  color: white;
+  background-color: rgba(255, 255, 255, 0.2);
+
+}
+
+#saves-btn {
+  border: none;
+  border-radius: 5px;
+  padding: 5px;
+  color: white;
+  background-color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  width: 179px;
+  margin-bottom: 20px;
+  margin-top: -15px;
+}
+
+#saves-btn:hover {
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+#password-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#password-list li {
+  color: white;
+  padding: 5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  justify-content: space-between;
+}
+
+#password-list li:last-child {
+  border: none;
+}
+
+#password-list li span {
+  display: inline-block;
+  width: 75%;
+}
+
+#password-list li .delete-btn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+
+#password-list li .delete-btn:hover {
+  text-decoration: underline;
+}
+
+#view-passwords-btn {
+  background-color: rgba(255, 255, 255, 0.5);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 5px;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+#view-passwords-btn:hover {
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+#closePopup {
+  position: fixed;
+  background-color: rgba(255, 255, 255, 0.5);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-left: 220px;
+  top: 31px;
+}
+
+#imgClosePopup {
+  width: 20px;
+  height: 20px;
+  padding: 3px;
+  margin-top: 3px;
+}

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>Password Keychain</title>
+    <link rel="stylesheet" href="index.css" />
+    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+</head>
+<body>
+<div id="mainContainer">
+        <button id="closePopup">
+            <img src="recourses/icons/x.svg" id="imgClosePopup">
+        </button>
+        <h2 id="title">Keychain</h2>
+
+        <form id="password-form">
+          <div id="content-container">
+            <label for="user-id" id="labels">User ID:</label><br>
+            <input type="text" id="user-id" name="user-id"><br>
+          </div>
+          <div id="content-container">
+            <label for="password" id="labels">Password:</label><br>
+            <input type="password" id="password" name="password"><br>
+          </div>
+
+        </form>
+        <button id="saves-btn">Save</button>
+
+        <button id="view-passwords-btn">View Passwords</button>
+        <div id="password-list" style="display:none;">
+          <h3>Saved Passwords</h3>
+          <ul></ul>
+        </div>
+    </div>
+    <script src="smartcontract.js" defer type="module"></script>  
+</body>
+</html>
