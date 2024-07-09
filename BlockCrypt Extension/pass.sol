@@ -2,17 +2,17 @@
 pragma solidity ^0.8.0;
 
 contract Keychain {
-    mapping(string => string) private keychain;
+    mapping(address => mapping(string => string)) private keychain;
 
-    event KeyValuePairSet(string key, string value);
+    event KeyValuePairSet(address indexed user, string key, string encryptedValue);
 
     function setKey(string memory key, string memory value) public {
         require(bytes(key).length > 0, "Key cannot be empty");
-        keychain[key] = value;
-        emit KeyValuePairSet(key, value); // Emit an event after setting the key-value pair
+        keychain[msg.sender][key] = value;
+        emit KeyValuePairSet(msg.sender, key, value);
     }
 
     function getValue(string memory key) public view returns (string memory) {
-        return keychain[key];
+        return keychain[msg.sender][key];
     }
 }

@@ -1,97 +1,124 @@
-// Initialize Web3
-const web3 = new Web3(new Web3.providers.HttpProvider('https://sepolia.infura.io/v3/b9750da435b048b885b77e0b1d42724b'));
-
-// Add your private key to the wallet
-web3.eth.accounts.wallet.add("0xb062fa28696d5b56fe0ad7d5b7ef616c9c1c5dcd3352cd4958fdcd5ab1ac17ed");
-
-// Your contract ABI and address
-const contractABI = [
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": false,
-                "internalType": "string",
-                "name": "id",
-                "type": "string"
-            },
-            {
-                "indexed": false,
-                "internalType": "string",
-                "name": "pass",
-                "type": "string"
-            }
-        ],
-        "name": "KeyValuePairSet",
-        "type": "event"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "string",
-                "name": "id",
-                "type": "string"
-            }
-        ],
-        "name": "getValue",
-        "outputs": [
-            {
-                "internalType": "string",
-                "name": "",
-                "type": "string"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "string",
-                "name": "id",
-                "type": "string"
-            },
-            {
-                "internalType": "string",
-                "name": "pass",
-                "type": "string"
-            }
-        ],
-        "name": "setKey",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
+if (typeof window.ethereum !== 'undefined') {
+    window.web3 = new Web3(window.ethereum);
+    try {
+        await window.ethereum.enable();
+    } catch (error) {
+        console.error("User denied account access");
     }
-];
-const contractAddress = '0x15E77C7DAe92952f627739f0473D17F29019EB28'; // Your contract address
+} else {
+    console.error("MetaMask is not installed");
+}
 
-// Get the contract instance
+async function getCurrentAccount() {
+    const accounts = await web3.eth.requestAccounts();
+    return accounts[0];
+}
+
+const contractABI = [
+    
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": true,
+                    "internalType": "address",
+                    "name": "user",
+                    "type": "address"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "string",
+                    "name": "key",
+                    "type": "string"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "string",
+                    "name": "encryptedValue",
+                    "type": "string"
+                }
+            ],
+            "name": "KeyValuePairSet",
+            "type": "event"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "string",
+                    "name": "key",
+                    "type": "string"
+                }
+            ],
+            "name": "getValue",
+            "outputs": [
+                {
+                    "internalType": "string",
+                    "name": "",
+                    "type": "string"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "string",
+                    "name": "key",
+                    "type": "string"
+                },
+                {
+                    "internalType": "string",
+                    "name": "value",
+                    "type": "string"
+                }
+            ],
+            "name": "setKey",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        }
+];
+
+const contractAddress = '0xa509965CAD53bDeEc4E4304C73d629F41253e9E5'; // Your contract address
+
 const contract = new web3.eth.Contract(contractABI, contractAddress);
 
-// Save password button click event
+function encryptPassword(password, key) {
+    return CryptoJS.AES.encrypt(password, key).toString();
+}
+
+// Decrypt function
+function decryptPassword(encryptedPassword, key) {
+    const bytes = CryptoJS.AES.decrypt(encryptedPassword, key);
+    return bytes.toString(CryptoJS.enc.Utf8);
+}
+
+// Save password
 document.getElementById('saves-btn').addEventListener('click', async () => {
     const id = document.getElementById('user-id').value;
     const password = document.getElementById('password').value;
-    console.log('Password value:', password); // Log password value
+    const encryptedPassword = encryptPassword(password, id);
     try {
-        await contract.methods.setKey(id, password).send({ from: '0xfd12Db8cC3C69edc632d7e11E2f0eEA60dFd995c' });
+        const userAccount = await getCurrentAccount();
+        await contract.methods.setKey(id, encryptedPassword).send({ from: userAccount });
         alert('Password saved successfully!');
-        console.log('Password saved successfully!');
     } catch (error) {
         alert('Error saving password');
         console.error('Error saving password:', error);
     }
 });
 
-// Retrieve passwords button click event
+// Retrieve passwords
 document.getElementById('view-passwords-btn').addEventListener('click', async () => {
     const id = document.getElementById('user-id').value;
     try {
-        const passwords = await contract.methods.getValue(id).call();
-        const outputDiv = document.getElementById('passwordOutput');
-        console.log('Passwords retrieved:', passwords);
+        const userAccount = await getCurrentAccount();
+        const encryptedPassword = await contract.methods.getValue(id).call({ from: userAccount });
+        const decryptedPassword = decryptPassword(encryptedPassword, id);
+        alert(`Password: ${decryptedPassword}`);
     } catch (error) {
-        alert('Error retrieving passwords');
-        console.error('Error retrieving passwords:', error);
+        alert('Error retrieving password');
+        console.error('Error retrieving password:', error);
     }
 });

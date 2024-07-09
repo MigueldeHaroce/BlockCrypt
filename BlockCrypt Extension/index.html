@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <title>Password Keychain</title>
     <link rel="stylesheet" href="index.css" />
+    <script src="https://cdn.jsdelivr.net/npm/crypto-js@latest/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"></script>
+    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="application/javascript"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
 </head>
 <body>
@@ -22,7 +26,6 @@
             <label for="password" id="labels">Password:</label><br>
             <input type="password" id="password" name="password"><br>
           </div>
-
         </form>
         <button id="saves-btn">Save</button>
 
