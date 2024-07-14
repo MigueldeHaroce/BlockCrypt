@@ -1,6 +1,6 @@
 const body = document.getElementById('body');
 const inputText = document.getElementById('inputText');
-const submit = document.getElementById('submit');
+const submit = document.getElementById('access');
 
 inputText.addEventListener('focus', function() {
     body.classList.add('blurred');

@@ -93,33 +93,51 @@ function decryptPassword(encryptedPassword, key) {
     const bytes = CryptoJS.AES.decrypt(encryptedPassword, key);
     return bytes.toString(CryptoJS.enc.Utf8);
 }
-/*
+
+
 // Save password
-document.getElementById('saves-btn').addEventListener('click', async () => {
-    const id = document.getElementById('user-id').value;
-    const password = document.getElementById('password').value;
-    const encryptedPassword = encryptPassword(password, id);
-    try {
-        const userAccount = await getCurrentAccount();
-        await contract.methods.setKey(id, encryptedPassword).send({ from: userAccount });
-        alert('Password saved successfully!');
-    } catch (error) {
-        alert('Error saving password');
-        console.error('Error saving password:', error);
-    }
-});
-*/
+if (window.location.href.includes('dashboard.html')) {
+    document.getElementById('submit').addEventListener('click', async () => {
+        console.log('a');
+        const id = localStorage.idUser;
+        console.log(localStorage.idUser);
+        const website = document.getElementById('website').innerHTML;
+        const password =`${website}: ${document.getElementById('inputText').value}`;
+
+        console.log(password);
+        const encryptedPassword = encryptPassword(password, id);
+        try {
+            const userAccount = await getCurrentAccount();
+            await contract.methods.setKey(id, encryptedPassword).send({ from: userAccount });
+            alert('Password saved successfully!');
+        } catch (error) {
+            alert('Error saving password');
+            console.error('Error saving password:', error);
+        }
+    });
+}
+
 // Retrieve passwords
-document.getElementById('submit').addEventListener('click', async () => {
-    const id = document.getElementById('inputText').value;
-    try {
-        const userAccount = await getCurrentAccount();
-        const encryptedPassword = await contract.methods.getValue(id).call({ from: userAccount });
-        const decryptedPassword = decryptPassword(encryptedPassword, id);
-        window.location.href = 'dashboard.html';
-        alert(`Password: ${decryptedPassword}`);
-    } catch (error) {
-        alert('Error retrieving password');
-        console.error('Error retrieving password:', error);
-    }
-});
+if (window.location.href.includes('index.html')) {
+    console.log('sex');
+    document.getElementById('access').addEventListener('click', async () => {
+        const id = document.getElementById('inputText').value;
+        localStorage.idUser = id;
+        console.log(localStorage.idUser);
+        try {
+            const userAccount = await getCurrentAccount();
+            console.log('a');
+            const encryptedPassword = await contract.methods.getValue(id).call({ from: userAccount });
+            const decryptedPassword = decryptPassword(encryptedPassword, id);
+            if (decryptedPassword === '') {
+                alert('Password not found');
+                return;
+            } else {
+                window.location.href = 'dashboard.html';
+            }
+        } catch (error) {
+            alert('Error retrieving password');
+            console.error('Error retrieving password:', error);
+        }
+    });
+}
