@@ -3,6 +3,7 @@
     "name": "BlockCrypt",
     "version": "1.0",
     "description": "A Chrome extension to interact with a blockchain smart contract.",
+    
     "permissions": [
         "activeTab",
         "storage"
