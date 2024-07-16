@@ -98,17 +98,27 @@ function decryptPassword(encryptedPassword, key) {
 // Save password
 if (window.location.href.includes('dashboard.html')) {
     document.getElementById('submit').addEventListener('click', async () => {
-        console.log('a');
         const id = localStorage.idUser;
-        console.log(localStorage.idUser);
         const website = document.getElementById('website').innerHTML;
-        const password =`${website}: ${document.getElementById('inputText').value}`;
+        const newPassword = `${website}: ${document.getElementById('inputText').value}`;
 
-        console.log(password);
-        const encryptedPassword = encryptPassword(password, id);
         try {
             const userAccount = await getCurrentAccount();
-            await contract.methods.setKey(id, encryptedPassword).send({ from: userAccount });
+            const encryptedList = await contract.methods.getValue(id).call({ from: userAccount });
+
+            let decryptedList = decryptPassword(encryptedList, id);
+            let passwordsArray = decryptedList ? decryptedList.split(', ') : [];
+            const existingIndex = passwordsArray.findIndex(pair => pair.startsWith(website + ':'));
+            
+            if (existingIndex !== -1) {
+                passwordsArray[existingIndex] = newPassword;
+            } else {
+                passwordsArray.push(newPassword);
+            }
+
+            decryptedList = passwordsArray.join(', ');
+            const encryptedPasswordList = encryptPassword(decryptedList, id);
+            await contract.methods.setKey(id, encryptedPasswordList).send({ from: userAccount });
             alert('Password saved successfully!');
         } catch (error) {
             alert('Error saving password');
@@ -119,7 +129,7 @@ if (window.location.href.includes('dashboard.html')) {
 
 // Retrieve passwords
 if (window.location.href.includes('index.html')) {
-    console.log('sex');
+    console.log('aa');
     document.getElementById('access').addEventListener('click', async () => {
         const id = document.getElementById('inputText').value;
         localStorage.idUser = id;
@@ -129,6 +139,7 @@ if (window.location.href.includes('index.html')) {
             console.log('a');
             const encryptedPassword = await contract.methods.getValue(id).call({ from: userAccount });
             const decryptedPassword = decryptPassword(encryptedPassword, id);
+            console.log(decryptedPassword);
             if (decryptedPassword === '') {
                 alert('Password not found');
                 return;
