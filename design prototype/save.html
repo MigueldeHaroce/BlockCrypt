@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="dashboard.css" />
+    <link rel="stylesheet" href="save.css" />
     <script src="https://cdn.jsdelivr.net/npm/crypto-js@latest/crypto-js.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"></script>
     <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="application/javascript"></script>
@@ -13,7 +13,6 @@
 </head>
 <body id="body">
     <div id="mainContainer">
-
         <input type="text" id="inputText" placeholder="Passcode..." />
         <div id="submit">
             <img src="Back Arrow.png" alt="submit" id="submitImg" />
@@ -28,7 +27,16 @@
                 <div id="website">www.store.steamco...com</div>
             </div>
         </div>
+        <div id="retrieveMenu">
+            <img src="Group 3.png" alt="retrieveMenu" id="retrieveMenuImg" />
+        </div>
+
     </div>
     <script src="smartcontract.js" defer type="module"></script>
+    <script>
+        document.getElementById("retrieveMenuImg").addEventListener("click", function() {
+            window.location.href = "retrieve.html";
+        });
+    </script>
 </body>
 </html>

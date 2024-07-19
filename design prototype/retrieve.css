@@ -1,0 +1,138 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
+:root {
+    --primary: #ced2a1;
+    --secondary: #376871;
+    --accent: #7593A7;
+    --background: #131309;
+    --text: #f0f1e2;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--background);
+    width: 433.33px;
+    height: 200px;
+}
+
+#mainContainer {
+    position: fixed;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    width: 433.33px;
+    height: 200px;
+}
+
+#content {
+    font-family: "Inter", sans-serif;
+    position: fixed;
+    display: flex;
+    left: 34px;
+    top: 27.33px;
+    flex-direction: row;
+    align-items: t;
+    justify-content: center;
+    gap: 8.67px;
+    transition: filter 0.3s ease, color 0.3s ease;
+}
+
+#img {
+    width: 40px;
+    height: 40px;
+    -webkit-user-drag: none;
+}
+
+#frame {
+    background-color: var(--primary);
+    width: 304.6px;
+    height: 79.3px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#text {
+    position: absolute;
+    color: var(--background);
+    font-size: 21.33px;
+    font-weight: medium;
+    top: 12.3px !important;
+    left: 14.3px !important;
+    user-select: none;
+}
+
+#website {
+    position: absolute;
+    color: var(--background);
+    font-size: 21.33px;
+    font-weight: bold;
+    top: 40px !important;
+    left: 15px !important;
+    user-select: none;
+}
+
+#inputText {
+    font-family: "Inter", sans-serif;
+    font-style: normal;
+    -webkit-user-drag: none;
+    position: fixed;
+    background-color: var(--secondary);
+    color: var(--text);
+    border: none;
+    border-radius: 12.67px;
+    color: var(--text);
+    width: 356.67px;
+    height: 46px;
+    font-size: 21.33px;
+    padding-left: 20px;
+    padding-right: 53.33px;
+    outline: none;
+    left: 33.33px;
+    top: 126.67px;
+    box-sizing: border-box;
+    outline: none;
+    cursor: text;
+}
+
+#get {
+    position: fixed;
+    background-color: var(--background);
+    width: 37.33px;
+    height: 34px;
+    border-radius: 6.67px;
+    left: 344.67px;
+    top: 132.67px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+#submitImg {
+    width: 25.33px;
+    height: 22.67px;
+    -webkit-user-drag: none;
+}
+
+.blurred #mainContainer > *:not(#inputText):not(#submit) {
+    filter: blur(4px);
+    color: rgba(30, 30, 30, 0.3);
+}
+
+.focused {
+    z-index: 10;
+}
+
+#retrieveMenuImg {
+    left: 7.50px;
+    position: fixed;
+    transform: translateY(-50%);
+}
+
+#retrieveMenuImg:active {
+    opacity: 0.9;
+}

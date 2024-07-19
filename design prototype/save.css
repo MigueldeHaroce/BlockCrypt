@@ -126,3 +126,13 @@ body {
 .focused {
     z-index: 10;
 }
+
+#retrieveMenuImg {
+    left: 400px;
+    position: fixed;
+    transform: translateY(-50%);
+}
+
+#retrieveMenuImg:active {
+    opacity: 0.9;
+}
