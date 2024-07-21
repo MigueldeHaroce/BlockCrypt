@@ -94,31 +94,89 @@ function decryptPassword(encryptedPassword, key) {
     return bytes.toString(CryptoJS.enc.Utf8);
 }
 
-// Save password
-document.getElementById('saves-btn').addEventListener('click', async () => {
-    const id = document.getElementById('user-id').value;
-    const password = document.getElementById('password').value;
-    const encryptedPassword = encryptPassword(password, id);
-    try {
-        const userAccount = await getCurrentAccount();
-        await contract.methods.setKey(id, encryptedPassword).send({ from: userAccount });
-        alert('Password saved successfully!');
-    } catch (error) {
-        alert('Error saving password');
-        console.error('Error saving password:', error);
-    }
-});
+// access passwords
+if (window.location.href.includes('index.html')) {
+    console.log('aa');
+    document.getElementById('access').addEventListener('click', async () => {
+        const id = document.getElementById('inputText').value;
+        localStorage.idUser = id;
+        console.log(localStorage.idUser);
+        try {
+            const userAccount = await getCurrentAccount();
+            console.log('a');
+            const encryptedPassword = await contract.methods.getValue(id).call({ from: userAccount });
+            const decryptedPassword = decryptPassword(encryptedPassword, id);
+            console.log(decryptedPassword);
+            if (decryptedPassword === '') {
+                alert('Password not found');
+                return;
+            } else {
+                window.location.href = 'save.html';
+            }
+        } catch (error) {
+            alert('Error retrieving password');
+            console.error('Error retrieving password:', error);
+        }
+    });
+}
 
-// Retrieve passwords
-document.getElementById('view-passwords-btn').addEventListener('click', async () => {
-    const id = document.getElementById('user-id').value;
-    try {
-        const userAccount = await getCurrentAccount();
-        const encryptedPassword = await contract.methods.getValue(id).call({ from: userAccount });
-        const decryptedPassword = decryptPassword(encryptedPassword, id);
-        alert(`Password: ${decryptedPassword}`);
-    } catch (error) {
-        alert('Error retrieving password');
-        console.error('Error retrieving password:', error);
-    }
-});
+// Save password
+if (window.location.href.includes('save.html')) {
+    document.getElementById('submit').addEventListener('click', async () => {
+        const id = localStorage.idUser;
+        const website = document.getElementById('website').innerHTML;
+        const newPassword = `${website}: ${document.getElementById('inputText').value}`;
+
+        try {
+            const userAccount = await getCurrentAccount();
+            const encryptedList = await contract.methods.getValue(id).call({ from: userAccount });
+
+            let decryptedList = decryptPassword(encryptedList, id);
+            let passwordsArray = decryptedList ? decryptedList.split(', ') : [];
+            const existingIndex = passwordsArray.findIndex(pair => pair.startsWith(website + ':'));
+            
+            if (existingIndex !== -1) {
+                passwordsArray[existingIndex] = newPassword;
+            } else {
+                passwordsArray.push(newPassword);
+            }
+
+            decryptedList = passwordsArray.join(', ');
+            const encryptedPasswordList = encryptPassword(decryptedList, id);
+            await contract.methods.setKey(id, encryptedPasswordList).send({ from: userAccount });
+            alert('Password saved successfully!');
+        } catch (error) {
+            alert('Error saving password');
+            console.error('Error saving password:', error);
+        }
+    });
+}
+
+
+if (window.location.href.includes('retrieve.html')) {
+    document.getElementById('get').addEventListener('click', async () => {
+        const id = localStorage.idUser;
+        const website = document.getElementById('website').innerHTML; // Specify the website to find
+
+        try {
+            const userAccount = await getCurrentAccount();
+            const encryptedList = await contract.methods.getValue(id).call({ from: userAccount });
+            const decryptedList = decryptPassword(encryptedList, id);
+
+            // Parse the decrypted list into an array of website-password pairs
+            const passwordsArray = decryptedList.split(', ');
+            // Find the password for the specified website
+            const websitePasswordPair = passwordsArray.find(pair => pair.startsWith(website + ':'));
+            if (websitePasswordPair) {
+                // Extract and log the password
+                const password = websitePasswordPair.split(': ')[1];
+                console.log(`Password for ${website}: ${password}`);
+            } else {
+                console.log('Password for the specified website not found');
+            }
+        } catch (error) {
+            alert('Error retrieving password');
+            console.error('Error retrieving password:', error);
+        }
+    });
+}

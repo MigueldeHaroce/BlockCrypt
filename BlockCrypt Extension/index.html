@@ -1,40 +1,35 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>Password Keychain</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="index.css" />
     <script src="https://cdn.jsdelivr.net/npm/crypto-js@latest/crypto-js.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"></script>
     <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="application/javascript"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+    <title>aa</title>
 </head>
-<body>
-<div id="mainContainer">
-        <button id="closePopup">
-            <img src="recourses/icons/x.svg" id="imgClosePopup">
-        </button>
-        <h2 id="title">Keychain</h2>
+<body id="body">
+    <div id="mainContainer">
 
-        <form id="password-form">
-          <div id="content-container">
-            <label for="user-id" id="labels">User ID:</label><br>
-            <input type="text" id="user-id" name="user-id"><br>
-          </div>
-          <div id="content-container">
-            <label for="password" id="labels">Password:</label><br>
-            <input type="password" id="password" name="password"><br>
-          </div>
-        </form>
-        <button id="saves-btn">Save</button>
+        <input type="text" id="inputText" placeholder="Passcode..." />
+        <div id="access">
+            <img src="Back Arrow.png" alt="submit" id="submitImg" />
+        </div>
 
-        <button id="view-passwords-btn">View Passwords</button>
-        <div id="password-list" style="display:none;">
-          <h3>Saved Passwords</h3>
-          <ul></ul>
+        <div id="blur"></div>
+
+        <div id="content">
+            <img id="img" src="example.png"></img>
+            <div id="frame">
+                <div id="greetings">Welcome</div>
+                <div id="user">0x13123n1k23kj12n</div>
+            </div>
         </div>
     </div>
-    <script src="smartcontract.js" defer type="module"></script>  
+    <script src="appfunctions.js"></script>
+    <script src="smartcontract.js" defer type="module"></script>
 </body>
 </html>
