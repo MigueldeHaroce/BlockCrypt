@@ -1,19 +1,26 @@
-if (typeof window.ethereum !== 'undefined') {
-    window.web3 = new Web3(window.ethereum);
-    try {
-        await window.ethereum.enable();
-    } catch (error) {
-        console.error("User denied account access");
-    }
+// ONLY FOR TESTING
+const createMetaMaskProvider = require('metamask-extension-provider');
+
+const provider = createMetaMaskProvider();
+
+provider.on('error', (error) => {
+  console.error("Failed to connect to MetaMask:", error);
+});
+
+if (provider) {
+    window.web3 = new Web3(provider);
 } else {
     console.error("MetaMask is not installed");
 }
 
 async function getCurrentAccount() {
-    const accounts = await web3.eth.requestAccounts();
-    return accounts[0];
+    try {
+        const accounts = await web3.eth.requestAccounts();
+        return accounts[0];
+    } catch (error) {
+        console.error("Error fetching accounts:", error);
+    }
 }
-
 const contractABI = [
     
         {
@@ -152,7 +159,6 @@ if (window.location.href.includes('save.html')) {
     });
 }
 
-
 if (window.location.href.includes('retrieve.html')) {
     document.getElementById('get').addEventListener('click', async () => {
         const id = localStorage.idUser;
@@ -163,12 +169,9 @@ if (window.location.href.includes('retrieve.html')) {
             const encryptedList = await contract.methods.getValue(id).call({ from: userAccount });
             const decryptedList = decryptPassword(encryptedList, id);
 
-            // Parse the decrypted list into an array of website-password pairs
             const passwordsArray = decryptedList.split(', ');
-            // Find the password for the specified website
             const websitePasswordPair = passwordsArray.find(pair => pair.startsWith(website + ':'));
             if (websitePasswordPair) {
-                // Extract and log the password
                 const password = websitePasswordPair.split(': ')[1];
                 console.log(`Password for ${website}: ${password}`);
             } else {

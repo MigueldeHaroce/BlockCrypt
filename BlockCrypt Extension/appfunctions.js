@@ -15,3 +15,15 @@ inputText.addEventListener('blur', function() {
     submit.classList.remove('focused');
     submitImg.classList.add('focused');
 });
+
+if (window.location.href.includes('retrieve.html')) {
+    document.getElementById("retrieveMenuImg").addEventListener("click", function() {
+        window.location.href = "save.html";
+    });
+}
+
+if (window.location.href.includes('save.html')) {
+    document.getElementById("retrieveMenuImg").addEventListener("click", function() {
+        window.location.href = "retrieve.html";
+    });
+}

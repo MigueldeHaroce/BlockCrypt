@@ -112,6 +112,12 @@ body {
     cursor: pointer;
 }
 
+#connectBtn {
+    position: absolute;
+    top: 0px;
+    
+}
+
 #submitImg {
     width: 25.33px;
     height: 22.67px;
