@@ -115,8 +115,15 @@ body {
 #connectBtn {
     position: absolute;
     top: 0px;
-    
+    right: 0px;
 }
+
+#connectBtnImg {
+    position: absolute;
+    top: 0px;
+    right: 0px;
+}
+
 
 #submitImg {
     width: 25.33px;

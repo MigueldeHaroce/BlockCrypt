@@ -27,3 +27,27 @@ if (window.location.href.includes('save.html')) {
         window.location.href = "retrieve.html";
     });
 }
+if (window.location.href.includes('save.html') || window.location.href.includes('retrieve.html')) {
+
+    document.addEventListener('DOMContentLoaded', function() {
+        chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+            var currentTab = tabs[0];
+            if (currentTab) {
+                // Extract the URL of the current tab
+                var url = currentTab.url;
+
+                // Remove the 'https://' part
+                url = url.replace(/^https?:\/\//, '');
+
+                // Shorten the URL if it's too long
+                var maxLength = 25; // Maximum length of the displayed URL
+                if (url.length > maxLength) {
+                    url = url.substring(0, maxLength - 3) + '...';
+                }
+
+                // Set the modified URL to the 'website' div
+                document.getElementById('website').textContent = url;
+            }
+        });
+    });
+}

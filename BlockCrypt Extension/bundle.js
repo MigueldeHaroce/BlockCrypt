@@ -24404,6 +24404,7 @@ function wrappy (fn, cb) {
 }
 
 },{}],234:[function(require,module,exports){
+  
 const createMetaMaskProvider = require('metamask-extension-provider');
 
 const provider = createMetaMaskProvider();
@@ -24418,14 +24419,26 @@ if (provider) {
     console.error("MetaMask is not installed");
 }
 
-async function getCurrentAccount() {
-    try {
+let userAccount = null; 
+
+if (window.location.href.includes('index.html')) {
+
+  const connectBtn = document.getElementById('connectBtn');
+
+
+  connectBtn.addEventListener('click', async function() {
+      try {
         const accounts = await web3.eth.requestAccounts();
-        return accounts[0];
-    } catch (error) {
-        console.error("Error fetching accounts:", error);
-    }
+        userAccount = accounts[0];
+        console.log("Connected account:", userAccount);
+      } catch (error) {
+          console.error("Error fetching accounts:", error);
+      }
+  });
 }
+
+
+
 const contractABI = [
     
         {
@@ -24514,7 +24527,6 @@ if (window.location.href.includes('index.html')) {
         localStorage.idUser = id;
         console.log(localStorage.idUser);
         try {
-            const userAccount = await getCurrentAccount();
             console.log('a');
             const encryptedPassword = await contract.methods.getValue(id).call({ from: userAccount });
             const decryptedPassword = decryptPassword(encryptedPassword, id);
@@ -24540,7 +24552,6 @@ if (window.location.href.includes('save.html')) {
         const newPassword = `${website}: ${document.getElementById('inputText').value}`;
 
         try {
-            const userAccount = await getCurrentAccount();
             const encryptedList = await contract.methods.getValue(id).call({ from: userAccount });
 
             let decryptedList = decryptPassword(encryptedList, id);
@@ -24570,7 +24581,6 @@ if (window.location.href.includes('retrieve.html')) {
         const website = document.getElementById('website').innerHTML; // Specify the website to find
 
         try {
-            const userAccount = await getCurrentAccount();
             const encryptedList = await contract.methods.getValue(id).call({ from: userAccount });
             const decryptedList = decryptPassword(encryptedList, id);
 
