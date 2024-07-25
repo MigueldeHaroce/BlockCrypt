@@ -137,5 +137,6 @@ body {
 }
 
 .focused {
-    z-index: 10;
+    z-index: 120 !important;
+    filter: blur(0px) !important;
 }

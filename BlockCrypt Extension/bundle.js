@@ -24430,11 +24430,26 @@ if (window.location.href.includes('index.html')) {
       try {
         const accounts = await web3.eth.requestAccounts();
         userAccount = accounts[0];
+        changeUI(userAccount)
         console.log("Connected account:", userAccount);
       } catch (error) {
           console.error("Error fetching accounts:", error);
       }
-  });
+  }); 
+  function changeUI(adress) {
+    const connectBtn = document.getElementById('connectBtn');
+    connectBtn.style.display = 'none';
+
+    if (adress.length > 19) {
+      const adressM = adress.substring(0, 19 - 3) + '...';
+      const usersss = document.getElementById('user');
+      usersss.innerHTML = adressM;
+    } else  {
+      const usersss = document.getElementById('user');
+      usersss.innerHTML = adress;
+    }
+    
+  }
 }
 
 
