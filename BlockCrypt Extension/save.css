@@ -128,13 +128,12 @@ body {
     filter: blur(0px) !important;
 }
 
-#saveMenuImg {
-    right: 12.5px;
-    position: fixed;
-    transform: translateY(-50%);
-
-}
 
 #saveMenuImg:active {
     opacity: 0.9;
+}
+
+a {
+    position: absolute;
+    right: 12.5px;
 }
