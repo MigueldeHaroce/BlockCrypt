@@ -3,14 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="retrieve.css" />
     <script src="recourses/crypto-js.min.js"></script>
     <script src="recourses/ethers-5.2.umd.min.js" type="application/javascript"></script>
     <script src="recourses/web3.min.js"></script>
+    <script src="recourses/barba.umd.js"></script>
+    <script src="recourses/gsap.min.js"></script>
 </head>
-<body id="body">
-    <div id="mainContainer">
-        <input type="text" id="inputText" placeholder="Passcode..." />
+<body id="body" data-barba="wrapper">
+    <main id="mainContainer" data-barba="container" data-barba-namespace="retrieve">
+        <link rel="stylesheet" href="retrieve.css" />
+
+        <input type="text" id="inputText" placeholder="Passcode..." readonly/>
         <div id="get">
             <img src="Back Arrow.png" alt="get" id="getImg" />
         </div>
@@ -20,16 +23,17 @@
         <div id="content">
             <div id="frame">
                 <div id="text">Retrieve password for</div>
-                <div id="website">www.store.steamco...com</div>
+                <div id="website"></div>
             </div>
             <img id="img" src="example.png"></img>
         </div>
-        <div id="retrieveMenu">
-            <img src="Group 3 180o.png" alt="retrieveMenu" id="retrieveMenuImg" />
-        </div>
+        <a href="save.html">
+            <img src="Group 3 180o.png" alt="retrieveMenu" id="retrieveMenuImg"/>
+        </a>
 
-    </div>
+    </main>
     <script src="./bundle.js"defer type="module"></script>
     <script src="appfunctions.js"></script>
+    <script src="animationRet.js"></script>
 </body>
 </html>

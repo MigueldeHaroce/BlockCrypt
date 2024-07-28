@@ -3,14 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="save.css" />
     <script src="recourses/crypto-js.min.js"></script>
     <script src="recourses/ethers-5.2.umd.min.js" type="application/javascript"></script>
     <script src="recourses/web3.min.js"></script>
+    <script src="recourses/barba.umd.js"></script>
+    <script src="recourses/gsap.min.js"></script>
 </head>
-<body id="body">
-    <div id="mainContainer">
-        <input type="text" id="inputText" placeholder="Passcode..." />
+<body id="body" data-barba="wrapper">
+    <main id="mainContainer" data-barba="container" data-barba-namespace="save">
+        <link rel="stylesheet" href="save.css" />
+        
+        <input type="text" id="inputText1" placeholder="Passcode..."/>
         <div id="submit">
             <img src="Back Arrow.png" alt="submit" id="submitImg" />
         </div>
@@ -21,15 +24,17 @@
             <img id="img" src="example.png"></img>
             <div id="frame">
                 <div id="text">Add password for</div>
-                <div id="website">www.store.steamco...com</div>
+                <div id="website"></div>
             </div>
         </div>
-        <div id="retrieveMenu">
-            <img src="Group 3.png" alt="retrieveMenu" id="retrieveMenuImg" />
-        </div>
-
-    </div>
+        <a href="retrieve.html">
+            <img src="Group 3.png" alt="retrieveMenu" id="saveMenuImg"/>
+        </a>
+    </main>
     <script src="./bundle.js"defer type="module"></script>
     <script src="appfunctions.js"></script>
+    <script src="animationSave.js"></script>
+
+
 </body>
 </html>

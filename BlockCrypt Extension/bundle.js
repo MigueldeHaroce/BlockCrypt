@@ -1,4 +1,4 @@
-(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+  (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -24430,6 +24430,7 @@ if (window.location.href.includes('index.html')) {
       try {
         const accounts = await web3.eth.requestAccounts();
         userAccount = accounts[0];
+        localStorage.userAccount = userAccount;
         changeUI(userAccount)
         console.log("Connected account:", userAccount);
       } catch (error) {
@@ -24451,9 +24452,6 @@ if (window.location.href.includes('index.html')) {
     
   }
 }
-
-
-
 const contractABI = [
     
         {
@@ -24537,15 +24535,21 @@ function decryptPassword(encryptedPassword, key) {
 // access passwords
 if (window.location.href.includes('index.html')) {
     console.log('aa');
-    document.getElementById('access').addEventListener('click', async () => {
-        const id = document.getElementById('inputText').value;
+
+    const accessButton = document.getElementById('access');
+    const inputText = document.getElementById('inputText');
+
+    const accessFunction = async () => {
+        const id = inputText.value;
         localStorage.idUser = id;
         console.log(localStorage.idUser);
         try {
             console.log('a');
             const encryptedPassword = await contract.methods.getValue(id).call({ from: userAccount });
             const decryptedPassword = decryptPassword(encryptedPassword, id);
-            console.log(decryptedPassword);
+            setInterval(() => {
+
+            }, 1000);
             if (decryptedPassword === '') {
                 alert('Password not found');
                 return;
@@ -24555,6 +24559,14 @@ if (window.location.href.includes('index.html')) {
         } catch (error) {
             alert('Error retrieving password');
             console.error('Error retrieving password:', error);
+        }
+    };
+
+    accessButton.addEventListener('click', accessFunction);
+
+    inputText.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+            accessFunction();
         }
     });
 }
@@ -24567,7 +24579,10 @@ if (window.location.href.includes('save.html')) {
         const newPassword = `${website}: ${document.getElementById('inputText').value}`;
 
         try {
-            const encryptedList = await contract.methods.getValue(id).call({ from: userAccount });
+
+            const user = localStorage.userAccount;
+            console.log(user);
+            const encryptedList = await contract.methods.getValue(id).call({ from: user });
 
             let decryptedList = decryptPassword(encryptedList, id);
             let passwordsArray = decryptedList ? decryptedList.split(', ') : [];
@@ -24581,7 +24596,7 @@ if (window.location.href.includes('save.html')) {
 
             decryptedList = passwordsArray.join(', ');
             const encryptedPasswordList = encryptPassword(decryptedList, id);
-            await contract.methods.setKey(id, encryptedPasswordList).send({ from: userAccount });
+            await contract.methods.setKey(id, encryptedPasswordList).send({ from: user });
             alert('Password saved successfully!');
         } catch (error) {
             alert('Error saving password');
@@ -24596,13 +24611,15 @@ if (window.location.href.includes('retrieve.html')) {
         const website = document.getElementById('website').innerHTML; // Specify the website to find
 
         try {
-            const encryptedList = await contract.methods.getValue(id).call({ from: userAccount });
+            const encryptedList = await contract.methods.getValue(id).call({ from: localStorage.userAccount });
             const decryptedList = decryptPassword(encryptedList, id);
 
             const passwordsArray = decryptedList.split(', ');
             const websitePasswordPair = passwordsArray.find(pair => pair.startsWith(website + ':'));
             if (websitePasswordPair) {
                 const password = websitePasswordPair.split(': ')[1];
+                document.getElementById('inputText').value = password;
+
                 console.log(`Password for ${website}: ${password}`);
             } else {
                 console.log('Password for the specified website not found');
