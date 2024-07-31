@@ -23,24 +23,7 @@ if (window.location.href.includes('index.html')) {
     
 }
 
-if (window.location.href.includes('retrieve.html')) {
-    const submit = document.getElementById('get');
-    const submitImg = document.getElementById('getImg');
-    
-    inputText.addEventListener('focus', function() {
-        body.classList.add('blurred');
-        inputText.classList.add('focused');
-        submit.classList.add('focused');
-        submitImg.classList.add('focused');
-    });
-    
-    inputText.addEventListener('blur', function() {
-        body.classList.remove('blurred');
-        inputText.classList.remove('focused');
-        submit.classList.remove('focused');
-        submitImg.classList.add('focused');
-    });
-}
+
 
 function initializeSavePage() {
     const submit = document.getElementById('submit');
@@ -99,17 +82,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
 barba.init({
     transitions: [{
-      name: 'opacity-transition',
-      leave(data) {
-        return gsap.to(data.current.container, {
-          opacity: 0
-        });
-      },
-      enter(data) {
-        return gsap.from(data.next.container, {
-          opacity: 0
-        });
-      }
+        name: 'opacity-transition',
+        leave(data) {
+            return gsap.to(data.current.container, {
+                opacity: 0,
+                duration: 0.5,
+                onComplete: () => {
+                    // Reload the page during the transition
+                    window.location.reload();
+                }
+            });
+        },
+        enter(data) {
+            return gsap.from(data.next.container, {
+                opacity: 0,
+                duration: 0.5
+            });
+        }
     }],
     views: [{
         namespace: 'save',

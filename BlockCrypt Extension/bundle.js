@@ -24425,6 +24425,7 @@ if (window.location.href.includes('index.html')) {
 
   const connectBtn = document.getElementById('connectBtn');
 
+  let currentIconType = 'blockies'; // Variable to keep track of the current icon type
 
   connectBtn.addEventListener('click', async function() {
       try {
@@ -24449,76 +24450,83 @@ if (window.location.href.includes('index.html')) {
       const usersss = document.getElementById('user');
       usersss.innerHTML = adress;
     }
-    
+/*
+    const icon = blockies.create({ seed: adress.toLowerCase(), size: 8, scale: 16 });
+    const iconElement = document.getElementById('img');
+    iconElement.src = icon.toDataURL();
+    iconElement.alt = 'User Icon';
+  */
   }
 }
 const contractABI = [
     
+  
+    {
+      "anonymous": false,
+      "inputs": [
         {
-            "anonymous": false,
-            "inputs": [
-                {
-                    "indexed": true,
-                    "internalType": "address",
-                    "name": "user",
-                    "type": "address"
-                },
-                {
-                    "indexed": false,
-                    "internalType": "string",
-                    "name": "key",
-                    "type": "string"
-                },
-                {
-                    "indexed": false,
-                    "internalType": "string",
-                    "name": "encryptedValue",
-                    "type": "string"
-                }
-            ],
-            "name": "KeyValuePairSet",
-            "type": "event"
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
         },
         {
-            "inputs": [
-                {
-                    "internalType": "string",
-                    "name": "key",
-                    "type": "string"
-                }
-            ],
-            "name": "getValue",
-            "outputs": [
-                {
-                    "internalType": "string",
-                    "name": "",
-                    "type": "string"
-                }
-            ],
-            "stateMutability": "view",
-            "type": "function"
+          "indexed": false,
+          "internalType": "string",
+          "name": "key",
+          "type": "string"
         },
         {
-            "inputs": [
-                {
-                    "internalType": "string",
-                    "name": "key",
-                    "type": "string"
-                },
-                {
-                    "internalType": "string",
-                    "name": "value",
-                    "type": "string"
-                }
-            ],
-            "name": "setKey",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
+          "indexed": false,
+          "internalType": "string",
+          "name": "encryptedValue",
+          "type": "string"
         }
+      ],
+      "name": "KeyValuePairSet",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "key",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "value",
+          "type": "string"
+        }
+      ],
+      "name": "setKey",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "key",
+          "type": "string"
+        }
+      ],
+      "name": "getValue",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  
 ];
 
-const contractAddress = '0xa509965CAD53bDeEc4E4304C73d629F41253e9E5'; // Your contract address
+const contractAddress = '0x7ccaf327770d1eE69283bD21b4C52322e6cd86de'; // Your contract address
 
 const contract = new web3.eth.Contract(contractABI, contractAddress);
 
@@ -24538,6 +24546,8 @@ if (window.location.href.includes('index.html')) {
 
     const accessButton = document.getElementById('access');
     const inputText = document.getElementById('inputText');
+    const newUserButton = document.getElementById('newUser');
+
 
     const accessFunction = async () => {
         const id = inputText.value;
@@ -24546,11 +24556,15 @@ if (window.location.href.includes('index.html')) {
         try {
             console.log('a');
             const encryptedPassword = await contract.methods.getValue(id).call({ from: userAccount });
+            console.log(encryptPassword);
+
             const decryptedPassword = decryptPassword(encryptedPassword, id);
+            console.log(decryptedPassword);
             setInterval(() => {
 
             }, 1000);
             if (decryptedPassword === '') {
+              
                 alert('Password not found');
                 return;
             } else {
@@ -24562,6 +24576,8 @@ if (window.location.href.includes('index.html')) {
         }
     };
 
+
+
     accessButton.addEventListener('click', accessFunction);
 
     inputText.addEventListener('keypress', (event) => {
@@ -24569,6 +24585,8 @@ if (window.location.href.includes('index.html')) {
             accessFunction();
         }
     });
+
+    
 }
 
 // Save password
@@ -24576,7 +24594,7 @@ if (window.location.href.includes('save.html')) {
     document.getElementById('submit').addEventListener('click', async () => {
         const id = localStorage.idUser;
         const website = document.getElementById('website').innerHTML;
-        const newPassword = `${website}: ${document.getElementById('inputText').value}`;
+        const newPassword = `${website}: ${document.getElementById('inputText1').value}`;
 
         try {
 
@@ -24606,6 +24624,9 @@ if (window.location.href.includes('save.html')) {
 }
 
 if (window.location.href.includes('retrieve.html')) {
+
+    console.log('aa');
+    
     document.getElementById('get').addEventListener('click', async () => {
         const id = localStorage.idUser;
         const website = document.getElementById('website').innerHTML; // Specify the website to find
