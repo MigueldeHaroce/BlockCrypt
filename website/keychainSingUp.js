@@ -4,22 +4,17 @@ let contract;
 
 connectBtn.addEventListener('click', async function() {
     try {
-        // Check if MetaMask is installed
         if (typeof window.ethereum !== 'undefined') {
             console.log('MetaMask is installed!');
 
-            // Request account access if needed
             const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
 
-            // Get the user's account
             userAccount = accounts[0];
             localStorage.userAccount = userAccount;
 
-            // Update the UI to reflect the connected account
             changeUI(userAccount);
             console.log("Connected account:", userAccount);
 
-            // Create a provider and signer using ethers.js
             const provider = new ethers.providers.Web3Provider(window.ethereum);
             const signer = provider.getSigner();
 
@@ -123,12 +118,12 @@ const newUserFunction = async () => {
     const userConfirmed = confirm('This ID cannot be changed. Are you sure you want to continue?');
     
     if (!userConfirmed) {
-        return; // Exit the function if the user clicks "Cancel"
+        return;
     }
 
     try {
-        // If no existing ID, allow the user to create a new one
-        const encryptedValue = encryptPassword('Start', id); // Encrypt an empty string as the initial value
+        
+        const encryptedValue = encryptPassword('Start', id); 
         await contract.setKey(id, encryptedValue);
         alert('New ID created successfully!');
     } catch (error) {

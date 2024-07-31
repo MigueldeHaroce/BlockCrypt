@@ -24425,7 +24425,7 @@ if (window.location.href.includes('index.html')) {
 
   const connectBtn = document.getElementById('connectBtn');
 
-  let currentIconType = 'blockies'; // Variable to keep track of the current icon type
+  let currentIconType = 'blockies'; 
 
   connectBtn.addEventListener('click', async function() {
       try {
