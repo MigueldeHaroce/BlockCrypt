@@ -18,7 +18,6 @@ connectBtn.addEventListener('click', async function() {
             const provider = new ethers.providers.Web3Provider(window.ethereum);
             const signer = provider.getSigner();
 
-            // Initialize the contract
             const contractABI = [
                 {
                     "anonymous": false,
@@ -69,6 +68,24 @@ connectBtn.addEventListener('click', async function() {
                             "internalType": "string",
                             "name": "key",
                             "type": "string"
+                        },
+                        {
+                            "internalType": "string",
+                            "name": "value",
+                            "type": "string"
+                        }
+                    ],
+                    "name": "setNewId",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "string",
+                            "name": "key",
+                            "type": "string"
                         }
                     ],
                     "name": "getValue",
@@ -84,9 +101,8 @@ connectBtn.addEventListener('click', async function() {
                 }
             ];
 
-            const contractAddress = '0x7ccaf327770d1eE69283bD21b4C52322e6cd86de'; // Your contract address
+            const contractAddress = '0x0ac2fE0CCe763e7947E60D021c6DC1554c000c4b'; 
             contract = new ethers.Contract(contractAddress, contractABI, signer);
-            
 
         } else {
             console.error('MetaMask is not installed. Please install it to use this feature.');
@@ -111,20 +127,20 @@ function decryptPassword(encryptedPassword, key) {
 }
 
 const newUserButton = document.getElementById('newUser');
+const inputText = document.getElementById('inputText'); 
 
 const newUserFunction = async () => {
-
     const id = inputText.value;
-    const userConfirmed = confirm('This ID cannot be changed. Are you sure you want to continue?');
-    
-    if (!userConfirmed) {
-        return;
-    }
-
+    localStorage.idUser = id;
     try {
-        
-        const encryptedValue = encryptPassword('Start', id); 
-        await contract.setKey(id, encryptedValue);
+        const existingValue = await contract.getValue(id); 
+        if (existingValue) {
+            alert('ID already exists. Please choose a different ID.');
+            return;
+        }
+
+        const encryptedValue = encryptPassword('a', id);
+        await contract.setNewId(id, encryptedValue); 
         alert('New ID created successfully!');
     } catch (error) {
         if (error.message.includes("User already has an ID")) {
@@ -134,6 +150,6 @@ const newUserFunction = async () => {
         }
         console.error('Error setting new ID:', error);
     }
-};  
+};
 
 newUserButton.addEventListener('click', newUserFunction);

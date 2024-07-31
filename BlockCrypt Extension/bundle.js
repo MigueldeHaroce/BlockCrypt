@@ -24510,6 +24510,24 @@ const contractABI = [
           "internalType": "string",
           "name": "key",
           "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "value",
+          "type": "string"
+        }
+      ],
+      "name": "setNewId",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "key",
+          "type": "string"
         }
       ],
       "name": "getValue",
@@ -24526,7 +24544,7 @@ const contractABI = [
   
 ];
 
-const contractAddress = '0x7ccaf327770d1eE69283bD21b4C52322e6cd86de'; // Your contract address
+const contractAddress = '0x0ac2fE0CCe763e7947E60D021c6DC1554c000c4b';
 
 const contract = new web3.eth.Contract(contractABI, contractAddress);
 
@@ -24591,36 +24609,35 @@ if (window.location.href.includes('index.html')) {
 
 // Save password
 if (window.location.href.includes('save.html')) {
-    document.getElementById('submit').addEventListener('click', async () => {
-        const id = localStorage.idUser;
-        const website = document.getElementById('website').innerHTML;
-        const newPassword = `${website}: ${document.getElementById('inputText1').value}`;
+  document.getElementById('submit').addEventListener('click', async () => {
+      const id = localStorage.idUser;
+      const website = document.getElementById('website').innerHTML;
+      const newPassword = `${website}: ${document.getElementById('inputText1').value}`;
 
-        try {
+      try {
+          const user = localStorage.userAccount;
+          console.log(user);
+          const encryptedList = await contract.methods.getValue(id).call({ from: user });
 
-            const user = localStorage.userAccount;
-            console.log(user);
-            const encryptedList = await contract.methods.getValue(id).call({ from: user });
+          let decryptedList = decryptPassword(encryptedList, id);
+          let passwordsArray = decryptedList ? decryptedList.split(', ') : [];
+          const existingIndex = passwordsArray.findIndex(pair => pair.startsWith(website + ':'));
+          
+          if (existingIndex !== -1) {
+              passwordsArray[existingIndex] = newPassword;
+          } else {
+              passwordsArray.push(newPassword);
+          }
 
-            let decryptedList = decryptPassword(encryptedList, id);
-            let passwordsArray = decryptedList ? decryptedList.split(', ') : [];
-            const existingIndex = passwordsArray.findIndex(pair => pair.startsWith(website + ':'));
-            
-            if (existingIndex !== -1) {
-                passwordsArray[existingIndex] = newPassword;
-            } else {
-                passwordsArray.push(newPassword);
-            }
-
-            decryptedList = passwordsArray.join(', ');
-            const encryptedPasswordList = encryptPassword(decryptedList, id);
-            await contract.methods.setKey(id, encryptedPasswordList).send({ from: user });
-            alert('Password saved successfully!');
-        } catch (error) {
-            alert('Error saving password');
-            console.error('Error saving password:', error);
-        }
-    });
+          decryptedList = passwordsArray.join(', ');
+          const encryptedPasswordList = encryptPassword(decryptedList, id);
+          await contract.methods.setKey(id, encryptedPasswordList).send({ from: user });
+          alert('Password saved successfully!');
+      } catch (error) {
+          alert('Error saving password');
+          console.error('Error saving password:', error);
+      }
+  });
 }
 
 if (window.location.href.includes('retrieve.html')) {
@@ -24629,8 +24646,7 @@ if (window.location.href.includes('retrieve.html')) {
     
     document.getElementById('get').addEventListener('click', async () => {
         const id = localStorage.idUser;
-        const website = document.getElementById('website').innerHTML; // Specify the website to find
-
+        const website = document.getElementById('website').innerHTML; 
         try {
             const encryptedList = await contract.methods.getValue(id).call({ from: localStorage.userAccount });
             const decryptedList = decryptPassword(encryptedList, id);
