@@ -1,4 +1,5 @@
-// ONLY FOR TESTING
+// ONLY TESTING
+
 const createMetaMaskProvider = require('metamask-extension-provider');
 
 const provider = createMetaMaskProvider();
@@ -13,81 +14,132 @@ if (provider) {
     console.error("MetaMask is not installed");
 }
 
-async function getCurrentAccount() {
-    try {
+let userAccount = null; 
+
+if (window.location.href.includes('index.html')) {
+
+  const connectBtn = document.getElementById('connectBtn');
+
+  let currentIconType = 'blockies'; 
+
+  connectBtn.addEventListener('click', async function() {
+      try {
         const accounts = await web3.eth.requestAccounts();
-        return accounts[0];
-    } catch (error) {
-        console.error("Error fetching accounts:", error);
+        userAccount = accounts[0];
+        localStorage.userAccount = userAccount;
+        changeUI(userAccount)
+        console.log("Connected account:", userAccount);
+      } catch (error) {
+          console.error("Error fetching accounts:", error);
+      }
+  }); 
+  function changeUI(adress) {
+    const connectBtn = document.getElementById('connectBtn');
+    connectBtn.style.display = 'none';
+
+    if (adress.length > 19) {
+      const adressM = adress.substring(0, 19 - 3) + '...';
+      const usersss = document.getElementById('user');
+      usersss.innerHTML = adressM;
+    } else  {
+      const usersss = document.getElementById('user');
+      usersss.innerHTML = adress;
     }
+/*
+    const icon = blockies.create({ seed: adress.toLowerCase(), size: 8, scale: 16 });
+    const iconElement = document.getElementById('img');
+    iconElement.src = icon.toDataURL();
+    iconElement.alt = 'User Icon';
+  */
+  }
 }
 const contractABI = [
     
+  
+    {
+      "anonymous": false,
+      "inputs": [
         {
-            "anonymous": false,
-            "inputs": [
-                {
-                    "indexed": true,
-                    "internalType": "address",
-                    "name": "user",
-                    "type": "address"
-                },
-                {
-                    "indexed": false,
-                    "internalType": "string",
-                    "name": "key",
-                    "type": "string"
-                },
-                {
-                    "indexed": false,
-                    "internalType": "string",
-                    "name": "encryptedValue",
-                    "type": "string"
-                }
-            ],
-            "name": "KeyValuePairSet",
-            "type": "event"
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
         },
         {
-            "inputs": [
-                {
-                    "internalType": "string",
-                    "name": "key",
-                    "type": "string"
-                }
-            ],
-            "name": "getValue",
-            "outputs": [
-                {
-                    "internalType": "string",
-                    "name": "",
-                    "type": "string"
-                }
-            ],
-            "stateMutability": "view",
-            "type": "function"
+          "indexed": false,
+          "internalType": "string",
+          "name": "key",
+          "type": "string"
         },
         {
-            "inputs": [
-                {
-                    "internalType": "string",
-                    "name": "key",
-                    "type": "string"
-                },
-                {
-                    "internalType": "string",
-                    "name": "value",
-                    "type": "string"
-                }
-            ],
-            "name": "setKey",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
+          "indexed": false,
+          "internalType": "string",
+          "name": "encryptedValue",
+          "type": "string"
         }
+      ],
+      "name": "KeyValuePairSet",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "key",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "value",
+          "type": "string"
+        }
+      ],
+      "name": "setKey",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "key",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "value",
+          "type": "string"
+        }
+      ],
+      "name": "setNewId",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "key",
+          "type": "string"
+        }
+      ],
+      "name": "getValue",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  
 ];
 
-const contractAddress = '0xa509965CAD53bDeEc4E4304C73d629F41253e9E5'; // Your contract address
+const contractAddress = '0x0ac2fE0CCe763e7947E60D021c6DC1554c000c4b';
 
 const contract = new web3.eth.Contract(contractABI, contractAddress);
 
@@ -104,17 +156,28 @@ function decryptPassword(encryptedPassword, key) {
 // access passwords
 if (window.location.href.includes('index.html')) {
     console.log('aa');
-    document.getElementById('access').addEventListener('click', async () => {
-        const id = document.getElementById('inputText').value;
+
+    const accessButton = document.getElementById('access');
+    const inputText = document.getElementById('inputText');
+    const newUserButton = document.getElementById('newUser');
+
+
+    const accessFunction = async () => {
+        const id = inputText.value;
         localStorage.idUser = id;
         console.log(localStorage.idUser);
         try {
-            const userAccount = await getCurrentAccount();
             console.log('a');
             const encryptedPassword = await contract.methods.getValue(id).call({ from: userAccount });
+            console.log(encryptPassword);
+
             const decryptedPassword = decryptPassword(encryptedPassword, id);
             console.log(decryptedPassword);
+            setInterval(() => {
+
+            }, 1000);
             if (decryptedPassword === '') {
+              
                 alert('Password not found');
                 return;
             } else {
@@ -124,55 +187,71 @@ if (window.location.href.includes('index.html')) {
             alert('Error retrieving password');
             console.error('Error retrieving password:', error);
         }
+    };
+
+
+
+    accessButton.addEventListener('click', accessFunction);
+
+    inputText.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+            accessFunction();
+        }
     });
+
+    
 }
 
 // Save password
 if (window.location.href.includes('save.html')) {
-    document.getElementById('submit').addEventListener('click', async () => {
-        const id = localStorage.idUser;
-        const website = document.getElementById('website').innerHTML;
-        const newPassword = `${website}: ${document.getElementById('inputText').value}`;
+  document.getElementById('submit').addEventListener('click', async () => {
+      const id = localStorage.idUser;
+      const website = document.getElementById('website').innerHTML;
+      const newPassword = `${website}: ${document.getElementById('inputText1').value}`;
 
-        try {
-            const userAccount = await getCurrentAccount();
-            const encryptedList = await contract.methods.getValue(id).call({ from: userAccount });
+      try {
+          const user = localStorage.userAccount;
+          console.log(user);
+          const encryptedList = await contract.methods.getValue(id).call({ from: user });
 
-            let decryptedList = decryptPassword(encryptedList, id);
-            let passwordsArray = decryptedList ? decryptedList.split(', ') : [];
-            const existingIndex = passwordsArray.findIndex(pair => pair.startsWith(website + ':'));
-            
-            if (existingIndex !== -1) {
-                passwordsArray[existingIndex] = newPassword;
-            } else {
-                passwordsArray.push(newPassword);
-            }
+          let decryptedList = decryptPassword(encryptedList, id);
+          let passwordsArray = decryptedList ? decryptedList.split(', ') : [];
+          const existingIndex = passwordsArray.findIndex(pair => pair.startsWith(website + ':'));
+          
+          if (existingIndex !== -1) {
+              passwordsArray[existingIndex] = newPassword;
+          } else {
+              passwordsArray.push(newPassword);
+          }
 
-            decryptedList = passwordsArray.join(', ');
-            const encryptedPasswordList = encryptPassword(decryptedList, id);
-            await contract.methods.setKey(id, encryptedPasswordList).send({ from: userAccount });
-            alert('Password saved successfully!');
-        } catch (error) {
-            alert('Error saving password');
-            console.error('Error saving password:', error);
-        }
-    });
+          decryptedList = passwordsArray.join(', ');
+          const encryptedPasswordList = encryptPassword(decryptedList, id);
+          await contract.methods.setKey(id, encryptedPasswordList).send({ from: user });
+          alert('Password saved successfully!');
+      } catch (error) {
+          alert('Error saving password');
+          console.error('Error saving password:', error);
+      }
+  });
 }
 
 if (window.location.href.includes('retrieve.html')) {
+
+    console.log('aa');
+    
     document.getElementById('get').addEventListener('click', async () => {
         const id = localStorage.idUser;
-        const website = document.getElementById('website').innerHTML; // Specify the website to find
-
+        const website = document.getElementById('website').innerHTML; 
         try {
-            const userAccount = await getCurrentAccount();
-            const encryptedList = await contract.methods.getValue(id).call({ from: userAccount });
+            const encryptedList = await contract.methods.getValue(id).call({ from: localStorage.userAccount });
             const decryptedList = decryptPassword(encryptedList, id);
 
             const passwordsArray = decryptedList.split(', ');
             const websitePasswordPair = passwordsArray.find(pair => pair.startsWith(website + ':'));
             if (websitePasswordPair) {
                 const password = websitePasswordPair.split(': ')[1];
+                document.getElementById('inputText').value = password;
+
                 console.log(`Password for ${website}: ${password}`);
             } else {
                 console.log('Password for the specified website not found');

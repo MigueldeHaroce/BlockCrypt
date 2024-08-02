@@ -118,7 +118,7 @@ body {
     -webkit-user-drag: none;
 }
 
-.blurred #mainContainer > *:not(#inputText):not(#submit) {
+.blurred #mainContainer > *:not(#inputText1):not(#submit) {
     filter: blur(4px);
     color: rgba(30, 30, 30, 0.3);
 }
@@ -126,6 +126,7 @@ body {
 .focused {
     z-index: 120 !important;
     filter: blur(0px) !important;
+    color: var(--text) !important;
 }
 
 
