@@ -12,7 +12,7 @@ connectBtn.addEventListener('click', async function() {
             userAccount = accounts[0];
             localStorage.userAccount = userAccount;
 
-            changeUI(userAccount);
+            connectBtn.style.display = 'none';
             console.log("Connected account:", userAccount);
 
             const provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -105,16 +105,12 @@ connectBtn.addEventListener('click', async function() {
             contract = new ethers.Contract(contractAddress, contractABI, signer);
 
         } else {
-            console.error('MetaMask is not installed. Please install it to use this feature.');
+            alert('MetaMask is not installed. Please install it to use BlockCrypt');
         }
     } catch (error) {
         console.error("Error fetching accounts:", error);
     }
 });
-
-function changeUI(account) {
-    console.log('Changing UI: ', account);
-}
 
 function encryptPassword(password, key) {
     return CryptoJS.AES.encrypt(password, key).toString();
@@ -131,7 +127,6 @@ const inputText = document.getElementById('inputText');
 
 const newUserFunction = async () => {
     const id = inputText.value;
-    localStorage.idUser = id;
     try {
         const existingValue = await contract.getValue(id); 
         if (existingValue) {
