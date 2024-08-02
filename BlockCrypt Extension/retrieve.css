@@ -95,7 +95,7 @@ body {
     top: 126.67px;
     box-sizing: border-box;
     outline: none;
-    cursor: text;
+    cursor:not-allowed;
     margin-left: 10px;
 }
 

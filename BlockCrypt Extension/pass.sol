@@ -3,8 +3,7 @@ pragma solidity ^0.8.0;
 
 contract Keychain {
     mapping(address => mapping(string => string)) private keychain;
-    mapping(address => bool) private hasId; // Mapping to track if a user already has an ID
-
+    mapping(address => bool) private hasId; 
     event KeyValuePairSet(address indexed user, string key, string encryptedValue);
 
     // Function to set a new ID
@@ -13,7 +12,7 @@ contract Keychain {
         require(!hasId[msg.sender], "User already has an ID"); 
 
         keychain[msg.sender][key] = value;
-        hasId[msg.sender] = true; // Mark that the user now has an ID
+        hasId[msg.sender] = true;
         emit KeyValuePairSet(msg.sender, key, value);
     }
 
