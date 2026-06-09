@@ -67,7 +67,9 @@ function updateWebsiteURL() {
 }
 
 function triggerInitialPageLoad() {
-    const namespace = document.querySelector('main').getAttribute('data-barba-namespace');
+    const main = document.querySelector('main');
+    if (!main) return; // index.html has no <main>/barba wrapper
+    const namespace = main.getAttribute('data-barba-namespace');
     if (namespace === 'save' || namespace === 'retrieve') {
         updateWebsiteURL();
     }
@@ -80,6 +82,8 @@ document.addEventListener('DOMContentLoaded', function() {
     triggerInitialPageLoad();
 });
 
+// barba is only loaded on save.html / retrieve.html.
+if (typeof barba !== 'undefined' && document.querySelector('[data-barba="wrapper"]')) {
 barba.init({
     transitions: [{
         name: 'opacity-transition',
@@ -113,3 +117,4 @@ barba.init({
         }
     }]
 });
+}

@@ -32,18 +32,18 @@
             </div>
         </div>
         <div id="signUp">
-            <div id="descriptionUp">BlockCrypt uses an ID for each user. This ID will let you access and manage your passwords. It cannot be changed, so be sure to note down your ID!</div>
+            <div id="descriptionUp">Your vault is tied to your wallet address and unlocked with a master password. The password is combined with a wallet signature to encrypt your vault — it never leaves your browser and cannot be reset, so store it safely!</div>
             <div id="buttonsUp">
-                <input type="text" id="inputText" placeholder="Create new Id..." />
-                <div id="newUser">Set Id</div>
+                <input type="password" id="inputText" placeholder="Choose a master password..." />
+                <div id="newUser">Create vault</div>
             </div>
         </div>
     </div>
+    <script src="config.js"></script>
+    <script src="recoursesWeb/ethers-5.2.umd.min.js" type="application/javascript"></script>
+    <script src="crypto.js"></script>
+    <script src="walletWeb.js"></script>
     <script src="index.js"></script>
     <script src="keychainSingUp.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/index.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"></script>
-    <script src="recoursesWeb/ethers-5.2.umd.min.js" type="application/javascript"></script>
-    <script src="https://cdn.jsdelivr.net/npm/web3@4.11.1/dist/web3.min.js"></script>
 </body>
 </html>

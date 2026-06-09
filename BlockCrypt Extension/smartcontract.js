@@ -1,264 +1,325 @@
-// ONLY TESTING
+// BlockCrypt extension — application logic.
+//
+// Pipeline per page:
+//   index.html    : connect any wallet (EIP-6963) + master password -> derive
+//                   AES key (PBKDF2 over password+signature) -> unlock vault.
+//   save.html     : add/update the password for the current site, re-encrypt
+//                   the whole vault, write it on-chain (setVault).
+//   retrieve.html : decrypt the vault, fill in the password for the current site.
+//
+// The derived AES key is cached for the popup session in chrome.storage.session
+// (in-memory, wiped when the browser closes) so the three pages can share it
+// without re-prompting the wallet each time.
 
-const createMetaMaskProvider = require('metamask-extension-provider');
+(function () {
+  const C = window.BlockCryptCrypto;
+  const W = window.BlockCryptWallet;
+  const CFG = window.BLOCKCRYPT_CONFIG;
 
-const provider = createMetaMaskProvider();
-
-provider.on('error', (error) => {
-  console.error("Failed to connect to MetaMask:", error);
-});
-
-if (provider) {
-    window.web3 = new Web3(provider);
-} else {
-    console.error("MetaMask is not installed");
-}
-
-let userAccount = null; 
-
-if (window.location.href.includes('index.html')) {
-
-  const connectBtn = document.getElementById('connectBtn');
-
-  let currentIconType = 'blockies'; 
-
-  connectBtn.addEventListener('click', async function() {
-      try {
-        const accounts = await web3.eth.requestAccounts();
-        userAccount = accounts[0];
-        localStorage.userAccount = userAccount;
-        changeUI(userAccount)
-        console.log("Connected account:", userAccount);
-      } catch (error) {
-          console.error("Error fetching accounts:", error);
-      }
-  }); 
-  function changeUI(adress) {
-    const connectBtn = document.getElementById('connectBtn');
-    connectBtn.style.display = 'none';
-
-    if (adress.length > 19) {
-      const adressM = adress.substring(0, 19 - 3) + '...';
-      const usersss = document.getElementById('user');
-      usersss.innerHTML = adressM;
-    } else  {
-      const usersss = document.getElementById('user');
-      usersss.innerHTML = adress;
+  // ---- guards ---------------------------------------------------------------
+  function assertConfigured() {
+    if (
+      !CFG.CONTRACT_ADDRESS ||
+      /^0x0{40}$/i.test(CFG.CONTRACT_ADDRESS)
+    ) {
+      alert(
+        "BlockCrypt is not configured yet: deploy pass.sol and set " +
+          "CONTRACT_ADDRESS in config.js (see DEPLOY.md)."
+      );
+      throw new Error("CONTRACT_ADDRESS not set");
     }
-/*
-    const icon = blockies.create({ seed: adress.toLowerCase(), size: 8, scale: 16 });
-    const iconElement = document.getElementById('img');
-    iconElement.src = icon.toDataURL();
-    iconElement.alt = 'User Icon';
-  */
   }
-}
-const contractABI = [
-    
-  
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "user",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "key",
-          "type": "string"
-        },
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "encryptedValue",
-          "type": "string"
-        }
-      ],
-      "name": "KeyValuePairSet",
-      "type": "event"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "string",
-          "name": "key",
-          "type": "string"
-        },
-        {
-          "internalType": "string",
-          "name": "value",
-          "type": "string"
-        }
-      ],
-      "name": "setKey",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "string",
-          "name": "key",
-          "type": "string"
-        },
-        {
-          "internalType": "string",
-          "name": "value",
-          "type": "string"
-        }
-      ],
-      "name": "setNewId",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "string",
-          "name": "key",
-          "type": "string"
-        }
-      ],
-      "name": "getValue",
-      "outputs": [
-        {
-          "internalType": "string",
-          "name": "",
-          "type": "string"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    }
-  
-];
 
-const contractAddress = '0x0ac2fE0CCe763e7947E60D021c6DC1554c000c4b';
-
-const contract = new web3.eth.Contract(contractABI, contractAddress);
-
-function encryptPassword(password, key) {
-    return CryptoJS.AES.encrypt(password, key).toString();
-}
-
-// Decrypt function
-function decryptPassword(encryptedPassword, key) {
-    const bytes = CryptoJS.AES.decrypt(encryptedPassword, key);
-    return bytes.toString(CryptoJS.enc.Utf8);
-}
-
-// access passwords
-if (window.location.href.includes('index.html')) {
-    console.log('aa');
-
-    const accessButton = document.getElementById('access');
-    const inputText = document.getElementById('inputText');
-    const newUserButton = document.getElementById('newUser');
-
-
-    const accessFunction = async () => {
-        const id = inputText.value;
-        localStorage.idUser = id;
-        console.log(localStorage.idUser);
-        try {
-            console.log('a');
-            const encryptedPassword = await contract.methods.getValue(id).call({ from: userAccount });
-            console.log(encryptPassword);
-
-            const decryptedPassword = decryptPassword(encryptedPassword, id);
-            console.log(decryptedPassword);
-            setInterval(() => {
-
-            }, 1000);
-            if (decryptedPassword === '') {
-              
-                alert('Password not found');
-                return;
-            } else {
-                window.location.href = 'save.html';
-            }
-        } catch (error) {
-            alert('Error retrieving password');
-            console.error('Error retrieving password:', error);
-        }
-    };
-
-
-
-    accessButton.addEventListener('click', accessFunction);
-
-    inputText.addEventListener('keypress', (event) => {
-        if (event.key === 'Enter') {
-            accessFunction();
-        }
+  // ---- session (shared across popup pages) ----------------------------------
+  function getSession() {
+    return new Promise((resolve) => {
+      chrome.storage.session.get(
+        ["providerUuid", "account", "keyHex"],
+        (s) => resolve(s || {})
+      );
     });
+  }
 
-    
-}
+  function setSession(data) {
+    return new Promise((resolve) => chrome.storage.session.set(data, resolve));
+  }
 
-// Save password
-if (window.location.href.includes('save.html')) {
-  document.getElementById('submit').addEventListener('click', async () => {
-      const id = localStorage.idUser;
-      const website = document.getElementById('website').innerHTML;
-      const newPassword = `${website}: ${document.getElementById('inputText1').value}`;
+  // ---- active tab host (the stable vault key for a site) --------------------
+  function getActiveHost() {
+    return new Promise((resolve) => {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const url = tabs && tabs[0] && tabs[0].url;
+        try {
+          resolve(url ? new URL(url).hostname : "");
+        } catch {
+          resolve("");
+        }
+      });
+    });
+  }
 
+  // ---- ethers wiring over the wallet bridge ---------------------------------
+  function ethersProvider(uuid) {
+    const shim = W.eip1193(uuid);
+    return new ethers.providers.Web3Provider(shim, "any");
+  }
+
+  function readContract(uuid) {
+    return new ethers.Contract(
+      CFG.CONTRACT_ADDRESS,
+      CFG.CONTRACT_ABI,
+      ethersProvider(uuid)
+    );
+  }
+
+  function writeContract(uuid, account) {
+    const provider = ethersProvider(uuid);
+    return new ethers.Contract(
+      CFG.CONTRACT_ADDRESS,
+      CFG.CONTRACT_ABI,
+      provider.getSigner(account)
+    );
+  }
+
+  // ---- minimal wallet picker (only shown when >1 wallet is installed) -------
+  function pickWallet(list) {
+    if (list.length === 1) return Promise.resolve(list[0].uuid);
+    return new Promise((resolve) => {
+      const overlay = document.createElement("div");
+      overlay.style.cssText =
+        "position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;" +
+        "flex-direction:column;align-items:center;justify-content:center;" +
+        "gap:8px;z-index:9999;font-family:sans-serif;";
+      const title = document.createElement("div");
+      title.textContent = "Choose a wallet";
+      title.style.cssText = "color:#fff;margin-bottom:8px;";
+      overlay.appendChild(title);
+      list.forEach((w) => {
+        const btn = document.createElement("button");
+        btn.textContent = w.name || w.rdns || w.uuid;
+        btn.style.cssText =
+          "padding:8px 16px;min-width:180px;cursor:pointer;border:none;" +
+          "border-radius:4px;background:#376871;color:#fff;font-size:14px;";
+        btn.onclick = () => {
+          document.body.removeChild(overlay);
+          resolve(w.uuid);
+        };
+        overlay.appendChild(btn);
+      });
+      document.body.appendChild(overlay);
+    });
+  }
+
+  async function connectWallet() {
+    const wallets = await W.discover();
+    if (!wallets.length) {
+      throw new Error(
+        "No wallet detected on this page. Install a wallet (MetaMask, Coinbase, " +
+          "Rabby, …) and open a normal website tab."
+      );
+    }
+    const uuid = await pickWallet(wallets);
+    const accounts = await W.request(uuid, "eth_requestAccounts", []);
+    if (!accounts || !accounts.length) throw new Error("No account authorized");
+    await W.ensureChain(uuid); // switch to the contract's network
+    return { uuid, account: accounts[0] };
+  }
+
+  function shortAddr(a) {
+    return a && a.length > 12 ? a.slice(0, 7) + "…" + a.slice(-4) : a;
+  }
+
+  // =====================================================================
+  //  index.html — connect + unlock
+  // =====================================================================
+  if (location.href.includes("index.html") || location.pathname.endsWith("/")) {
+    const connectBtn = document.getElementById("connectBtn");
+    const accessBtn = document.getElementById("access");
+    const masterInput = document.getElementById("inputText");
+    const userLabel = document.getElementById("user");
+
+    let session = { uuid: null, account: null };
+
+    async function restore() {
+      const s = await getSession();
+      if (s.account && s.providerUuid) {
+        session = { uuid: s.providerUuid, account: s.account };
+        if (userLabel) userLabel.textContent = shortAddr(s.account);
+        if (connectBtn) connectBtn.style.display = "none";
+      }
+    }
+    restore();
+
+    if (connectBtn) {
+      connectBtn.addEventListener("click", async () => {
+        try {
+          assertConfigured();
+          const { uuid, account } = await connectWallet();
+          session = { uuid, account };
+          await setSession({ providerUuid: uuid, account });
+          if (userLabel) userLabel.textContent = shortAddr(account);
+          connectBtn.style.display = "none";
+        } catch (e) {
+          alert(e.message);
+        }
+      });
+    }
+
+    async function unlock() {
       try {
-          const user = localStorage.userAccount;
-          console.log(user);
-          const encryptedList = await contract.methods.getValue(id).call({ from: user });
+        assertConfigured();
+        if (!session.account) {
+          alert("Connect your wallet first.");
+          return;
+        }
+        const master = masterInput.value;
+        if (!master) {
+          alert("Enter your master password.");
+          return;
+        }
 
-          let decryptedList = decryptPassword(encryptedList, id);
-          let passwordsArray = decryptedList ? decryptedList.split(', ') : [];
-          const existingIndex = passwordsArray.findIndex(pair => pair.startsWith(website + ':'));
-          
-          if (existingIndex !== -1) {
-              passwordsArray[existingIndex] = newPassword;
-          } else {
-              passwordsArray.push(newPassword);
+        await W.ensureChain(session.uuid); // guard against a mid-session switch
+        const provider = ethersProvider(session.uuid);
+        const contract = new ethers.Contract(
+          CFG.CONTRACT_ADDRESS,
+          CFG.CONTRACT_ABI,
+          provider
+        );
+        const registered = await contract.isRegistered(session.account);
+        if (!registered) {
+          alert(
+            "This wallet has no vault yet. Create one on the BlockCrypt website first."
+          );
+          return;
+        }
+
+        const [saltHex, cipherHex] = await contract.getVaultOf(session.account);
+        // personal_sign directly (ethers 5.2 signMessage wrongly uses eth_sign,
+        // which modern wallets reject). Hex-encode for cross-wallet consistency.
+        const msgHex = ethers.utils.hexlify(
+          ethers.utils.toUtf8Bytes(CFG.KEY_DERIVATION_MESSAGE)
+        );
+        const signature = await W.request(session.uuid, "personal_sign", [
+          msgHex,
+          session.account,
+        ]);
+
+        const key = await C.deriveKey(master, signature, C.hexToBytes(saltHex));
+
+        // Verify the password by decrypting the existing vault.
+        if (cipherHex && cipherHex !== "0x") {
+          await C.decryptFromHex(key, cipherHex); // throws if wrong
+        }
+
+        const keyHex = await C.exportRawKeyHex(key);
+        await setSession({
+          providerUuid: session.uuid,
+          account: session.account,
+          keyHex,
+        });
+        location.href = "save.html";
+      } catch (e) {
+        alert(e.message || "Unlock failed");
+        console.error(e);
+      }
+    }
+
+    if (accessBtn) accessBtn.addEventListener("click", unlock);
+    if (masterInput) {
+      masterInput.addEventListener("keypress", (ev) => {
+        if (ev.key === "Enter") unlock();
+      });
+    }
+  }
+
+  // =====================================================================
+  //  shared loader for save.html / retrieve.html
+  // =====================================================================
+  async function loadVaultContext() {
+    assertConfigured();
+    const s = await getSession();
+    if (!s.account || !s.keyHex || !s.providerUuid) {
+      alert("Vault locked. Open the extension and unlock first.");
+      location.href = "index.html";
+      throw new Error("locked");
+    }
+    await W.ensureChain(s.providerUuid); // make sure reads/writes hit the right chain
+    const key = await C.importRawKeyHex(s.keyHex);
+    const host = await getActiveHost();
+    return { ...s, key, host };
+  }
+
+  async function readVault(ctx) {
+    const contract = readContract(ctx.providerUuid);
+    const [, cipherHex] = await contract.getVaultOf(ctx.account);
+    if (!cipherHex || cipherHex === "0x") return C.emptyVault();
+    const plain = await C.decryptFromHex(ctx.key, cipherHex);
+    return C.parseVault(plain);
+  }
+
+  // =====================================================================
+  //  save.html
+  // =====================================================================
+  if (location.href.includes("save.html")) {
+    const submit = document.getElementById("submit");
+    if (submit) {
+      submit.addEventListener("click", async () => {
+        try {
+          const ctx = await loadVaultContext();
+          if (!ctx.host) {
+            alert("Could not read the current site.");
+            return;
+          }
+          const password = document.getElementById("inputText1").value;
+          if (!password) {
+            alert("Enter a password to save.");
+            return;
           }
 
-          decryptedList = passwordsArray.join(', ');
-          const encryptedPasswordList = encryptPassword(decryptedList, id);
-          await contract.methods.setKey(id, encryptedPasswordList).send({ from: user });
-          alert('Password saved successfully!');
-      } catch (error) {
-          alert('Error saving password');
-          console.error('Error saving password:', error);
-      }
-  });
-}
+          const vault = await readVault(ctx);
+          vault.entries[ctx.host] = password;
+          const cipherHex = await C.encryptToHex(
+            ctx.key,
+            C.serializeVault(vault)
+          );
 
-if (window.location.href.includes('retrieve.html')) {
-
-    console.log('aa');
-    
-    document.getElementById('get').addEventListener('click', async () => {
-        const id = localStorage.idUser;
-        const website = document.getElementById('website').innerHTML; 
-        try {
-            const encryptedList = await contract.methods.getValue(id).call({ from: localStorage.userAccount });
-            const decryptedList = decryptPassword(encryptedList, id);
-
-            const passwordsArray = decryptedList.split(', ');
-            const websitePasswordPair = passwordsArray.find(pair => pair.startsWith(website + ':'));
-            if (websitePasswordPair) {
-                const password = websitePasswordPair.split(': ')[1];
-                document.getElementById('inputText').value = password;
-
-                console.log(`Password for ${website}: ${password}`);
-            } else {
-                console.log('Password for the specified website not found');
-            }
-        } catch (error) {
-            alert('Error retrieving password');
-            console.error('Error retrieving password:', error);
+          const contract = writeContract(ctx.providerUuid, ctx.account);
+          const tx = await contract.setVault(cipherHex);
+          await tx.wait();
+          alert("Password saved on-chain for " + ctx.host);
+        } catch (e) {
+          if (e.message === "locked") return;
+          alert("Error saving password: " + (e.message || e));
+          console.error(e);
         }
-    });
-}
+      });
+    }
+  }
+
+  // =====================================================================
+  //  retrieve.html
+  // =====================================================================
+  if (location.href.includes("retrieve.html")) {
+    const getBtn = document.getElementById("get");
+    if (getBtn) {
+      getBtn.addEventListener("click", async () => {
+        try {
+          const ctx = await loadVaultContext();
+          const vault = await readVault(ctx);
+          const password = vault.entries[ctx.host];
+          const field = document.getElementById("inputText");
+          if (password) {
+            field.value = password;
+          } else {
+            field.value = "";
+            alert("No password stored for " + ctx.host);
+          }
+        } catch (e) {
+          if (e.message === "locked") return;
+          alert("Error retrieving password: " + (e.message || e));
+          console.error(e);
+        }
+      });
+    }
+  }
+})();

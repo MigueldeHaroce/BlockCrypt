@@ -4,17 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="index.css" />
-    <script src="recourses/crypto-js.min.js"></script>
+    <script src="config.js"></script>
     <script src="recourses/ethers-5.2.umd.min.js" type="application/javascript"></script>
-    <script src="recourses/web3.min.js"></script>
     <script src="recourses/blockies.min.js"></script>
+    <script src="crypto.js"></script>
+    <script src="wallet.js"></script>
 
-    <title>aa</title>
+    <title>BlockCrypt</title>
 </head>
 <body id="body">
     <div id="mainContainer">
 
-        <input type="text" id="inputText" placeholder="Passcode..." />
+        <input type="password" id="inputText" placeholder="Master password..." />
         <div id="access" style="filter: blur(0px);">
             <img src="Back Arrow.png" alt="submit" id="submitImg" />
         </div>
@@ -33,6 +34,6 @@
         </div>
     </div>
     <script src="appfunctions.js"></script>
-    <script src="./bundle.js"defer type="module"></script>
+    <script src="smartcontract.js"></script>
 </body>
 </html>
