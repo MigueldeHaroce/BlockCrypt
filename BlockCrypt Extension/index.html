@@ -6,31 +6,36 @@
     <link rel="stylesheet" href="index.css" />
     <script src="config.js"></script>
     <script src="recourses/ethers-5.2.umd.min.js" type="application/javascript"></script>
-    <script src="recourses/blockies.min.js"></script>
     <script src="crypto.js"></script>
     <script src="wallet.js"></script>
 
     <title>BlockCrypt</title>
 </head>
 <body id="body">
-    <div id="mainContainer">
+    <div id="mainContainer" class="bc-home">
+        <div class="bc-tophead">
+            <div class="bc-brand">
+                <div class="bc-titlewrap">
+                    <span class="bc-dot"></span>
+                    <span class="bc-title">BlockCrypt</span>
+                </div>
+                <div class="bc-subtitle">by MigueldeHaro</div>
+            </div>
 
-        <input type="password" id="inputText" placeholder="Master password..." />
-        <div id="access" style="filter: blur(0px);">
-            <img src="Back Arrow.png" alt="submit" id="submitImg" />
-        </div>
-
-        <div id="blur"></div>
-
-        <div id="content">
-            <img id="img" src="example.png"></img>
-            <div id="frame">
-                <div id="greetings">Welcome</div>
-                <div id="user">Please sign in</div>
+            <div class="bc-identity">
+                <div id="connectBtn">Connect wallet</div>
+                <div id="userbox" style="display: flex;flex-direction: column;">
+                    <div id="greetings">Welcome</div>
+                    <div id="user"></div>
+                </div>
             </div>
         </div>
-        <div id="connectBtn" class="access">
-            <img src="Group 5.png" alt="connectBtn" id="connectBtnImg" class="submitImg"/>
+
+        <div class="bc-inputrow">
+            <input type="password" id="inputText" placeholder="Master password..." />
+            <div id="access">
+                <img src="Back Arrow.png" alt="unlock" id="submitImg" />
+            </div>
         </div>
     </div>
     <script src="appfunctions.js"></script>

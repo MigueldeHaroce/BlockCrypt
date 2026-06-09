@@ -51,17 +51,14 @@ function initializeSavePage() {
 function updateWebsiteURL() {
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
         var currentTab = tabs[0];
-        if (currentTab) {
-            var url = currentTab.url;
-
-            url = url.replace(/^https?:\/\//, '');
-
-            var maxLength = 25;
-            if (url.length > maxLength) {
-                url = url.substring(0, maxLength - 3) + '...';
+        if (currentTab && currentTab.url) {
+            var host;
+            try {
+                host = new URL(currentTab.url).hostname; // domain up to the TLD, no path
+            } catch (e) {
+                host = currentTab.url.replace(/^https?:\/\//, '').split('/')[0];
             }
-
-            document.getElementById('website').textContent = url;
+            document.getElementById('website').textContent = host;
         }
     });
 }

@@ -1,15 +1,15 @@
 // BlockCrypt extension — application logic.
 //
 // Pipeline per page:
-//   index.html    : connect any wallet (EIP-6963) + master password -> derive
-//                   AES key (PBKDF2 over password+signature) -> unlock vault.
-//   save.html     : add/update the password for the current site, re-encrypt
-//                   the whole vault, write it on-chain (setVault).
-//   retrieve.html : decrypt the vault, fill in the password for the current site.
+//   index.html : connect any wallet (EIP-6963) + master password -> derive
+//                AES key (PBKDF2 over password+signature) -> unlock vault.
+//   vault.html : single page with save/retrieve modes toggled in place (no
+//                navigation). Save re-encrypts the whole vault and writes it
+//                on-chain (setVault); retrieve decrypts and reveals it.
 //
 // The derived AES key is cached for the popup session in chrome.storage.session
-// (in-memory, wiped when the browser closes) so the three pages can share it
-// without re-prompting the wallet each time.
+// (in-memory, wiped when the browser closes) so both pages can share it without
+// re-prompting the wallet each time.
 
 (function () {
   const C = window.BlockCryptCrypto;
@@ -34,7 +34,7 @@
   function getSession() {
     return new Promise((resolve) => {
       chrome.storage.session.get(
-        ["providerUuid", "account", "keyHex"],
+        ["providerRdns", "account", "keyHex"],
         (s) => resolve(s || {})
       );
     });
@@ -59,21 +59,21 @@
   }
 
   // ---- ethers wiring over the wallet bridge ---------------------------------
-  function ethersProvider(uuid) {
-    const shim = W.eip1193(uuid);
+  function ethersProvider(rdns) {
+    const shim = W.eip1193(rdns);
     return new ethers.providers.Web3Provider(shim, "any");
   }
 
-  function readContract(uuid) {
+  function readContract(rdns) {
     return new ethers.Contract(
       CFG.CONTRACT_ADDRESS,
       CFG.CONTRACT_ABI,
-      ethersProvider(uuid)
+      ethersProvider(rdns)
     );
   }
 
-  function writeContract(uuid, account) {
-    const provider = ethersProvider(uuid);
+  function writeContract(rdns, account) {
+    const provider = ethersProvider(rdns);
     return new ethers.Contract(
       CFG.CONTRACT_ADDRESS,
       CFG.CONTRACT_ABI,
@@ -83,7 +83,7 @@
 
   // ---- minimal wallet picker (only shown when >1 wallet is installed) -------
   function pickWallet(list) {
-    if (list.length === 1) return Promise.resolve(list[0].uuid);
+    if (list.length === 1) return Promise.resolve(list[0].rdns);
     return new Promise((resolve) => {
       const overlay = document.createElement("div");
       overlay.style.cssText =
@@ -102,7 +102,7 @@
           "border-radius:4px;background:#376871;color:#fff;font-size:14px;";
         btn.onclick = () => {
           document.body.removeChild(overlay);
-          resolve(w.uuid);
+          resolve(w.rdns);
         };
         overlay.appendChild(btn);
       });
@@ -118,11 +118,11 @@
           "Rabby, …) and open a normal website tab."
       );
     }
-    const uuid = await pickWallet(wallets);
-    const accounts = await W.request(uuid, "eth_requestAccounts", []);
+    const rdns = await pickWallet(wallets);
+    const accounts = await W.request(rdns, "eth_requestAccounts", []);
     if (!accounts || !accounts.length) throw new Error("No account authorized");
-    await W.ensureChain(uuid); // switch to the contract's network
-    return { uuid, account: accounts[0] };
+    await W.ensureChain(rdns); // switch to the contract's network
+    return { rdns, account: accounts[0] };
   }
 
   function shortAddr(a) {
@@ -137,15 +137,22 @@
     const accessBtn = document.getElementById("access");
     const masterInput = document.getElementById("inputText");
     const userLabel = document.getElementById("user");
+    const userBox = document.getElementById("userbox");
 
-    let session = { uuid: null, account: null };
+    let session = { rdns: null, account: null };
+
+    // Swap the connect chip for the Welcome + address box (top-right).
+    function showConnected(account) {
+      if (userLabel) userLabel.textContent = shortAddr(account);
+      if (userBox) userBox.style.display = "flex";
+      if (connectBtn) connectBtn.style.display = "none";
+    }
 
     async function restore() {
       const s = await getSession();
-      if (s.account && s.providerUuid) {
-        session = { uuid: s.providerUuid, account: s.account };
-        if (userLabel) userLabel.textContent = shortAddr(s.account);
-        if (connectBtn) connectBtn.style.display = "none";
+      if (s.account && s.providerRdns) {
+        session = { rdns: s.providerRdns, account: s.account };
+        showConnected(s.account);
       }
     }
     restore();
@@ -154,11 +161,10 @@
       connectBtn.addEventListener("click", async () => {
         try {
           assertConfigured();
-          const { uuid, account } = await connectWallet();
-          session = { uuid, account };
-          await setSession({ providerUuid: uuid, account });
-          if (userLabel) userLabel.textContent = shortAddr(account);
-          connectBtn.style.display = "none";
+          const { rdns, account } = await connectWallet();
+          session = { rdns, account };
+          await setSession({ providerRdns: rdns, account });
+          showConnected(account);
         } catch (e) {
           alert(e.message);
         }
@@ -178,8 +184,13 @@
           return;
         }
 
-        await W.ensureChain(session.uuid); // guard against a mid-session switch
-        const provider = ethersProvider(session.uuid);
+        // Authorize this site's origin (required to sign). No-ops if already
+        // connected; prompts the wallet the first time on a new website.
+        const accts = await W.request(session.rdns, "eth_requestAccounts", []);
+        if (accts && accts.length) session.account = accts[0];
+
+        await W.ensureChain(session.rdns); // guard against a mid-session switch
+        const provider = ethersProvider(session.rdns);
         const contract = new ethers.Contract(
           CFG.CONTRACT_ADDRESS,
           CFG.CONTRACT_ABI,
@@ -199,25 +210,31 @@
         const msgHex = ethers.utils.hexlify(
           ethers.utils.toUtf8Bytes(CFG.KEY_DERIVATION_MESSAGE)
         );
-        const signature = await W.request(session.uuid, "personal_sign", [
+        const signature = await W.request(session.rdns, "personal_sign", [
           msgHex,
           session.account,
         ]);
 
         const key = await C.deriveKey(master, signature, C.hexToBytes(saltHex));
 
-        // Verify the password by decrypting the existing vault.
+        // Decrypt the vault (this also verifies the master password) and decide
+        // which mode to open: retrieve if this site already has a saved
+        // password, otherwise save.
+        let hasEntryForSite = false;
         if (cipherHex && cipherHex !== "0x") {
-          await C.decryptFromHex(key, cipherHex); // throws if wrong
+          const plain = await C.decryptFromHex(key, cipherHex); // throws if wrong
+          const vault = C.parseVault(plain);
+          const host = await getActiveHost();
+          hasEntryForSite = !!(host && vault.entries[host]);
         }
 
         const keyHex = await C.exportRawKeyHex(key);
         await setSession({
-          providerUuid: session.uuid,
+          providerRdns: session.rdns,
           account: session.account,
           keyHex,
         });
-        location.href = "save.html";
+        location.href = "vault.html#" + (hasEntryForSite ? "retrieve" : "save");
       } catch (e) {
         alert(e.message || "Unlock failed");
         console.error(e);
@@ -233,60 +250,146 @@
   }
 
   // =====================================================================
-  //  shared loader for save.html / retrieve.html
+  //  shared loader for the vault page
   // =====================================================================
   async function loadVaultContext() {
     assertConfigured();
     const s = await getSession();
-    if (!s.account || !s.keyHex || !s.providerUuid) {
+    if (!s.account || !s.keyHex || !s.providerRdns) {
       alert("Vault locked. Open the extension and unlock first.");
       location.href = "index.html";
       throw new Error("locked");
     }
-    await W.ensureChain(s.providerUuid); // make sure reads/writes hit the right chain
+    await W.ensureChain(s.providerRdns); // make sure reads/writes hit the right chain
     const key = await C.importRawKeyHex(s.keyHex);
     const host = await getActiveHost();
     return { ...s, key, host };
   }
 
   async function readVault(ctx) {
-    const contract = readContract(ctx.providerUuid);
+    const contract = readContract(ctx.providerRdns);
     const [, cipherHex] = await contract.getVaultOf(ctx.account);
     if (!cipherHex || cipherHex === "0x") return C.emptyVault();
     const plain = await C.decryptFromHex(ctx.key, cipherHex);
     return C.parseVault(plain);
   }
 
+  // Cache the vault for the page so toggling modes never re-fetches/decrypts.
+  let _vaultCache = null;
+  async function getVaultCached(ctx) {
+    if (!_vaultCache) _vaultCache = await readVault(ctx);
+    return _vaultCache;
+  }
+
   // =====================================================================
-  //  save.html
+  //  vault.html — ONE page; save/retrieve are toggled in place with no
+  //  navigation or reload (the old two-HTML + barba reload caused the flash).
   // =====================================================================
-  if (location.href.includes("save.html")) {
-    const submit = document.getElementById("submit");
-    if (submit) {
-      submit.addEventListener("click", async () => {
+  if (location.href.includes("vault.html")) {
+    const textLabel = document.getElementById("text");
+    const websiteEl = document.getElementById("website");
+    const switchBtn = document.getElementById("switchBtn");
+    const saveRow = document.getElementById("saveRow");
+    const retrieveRow = document.getElementById("retrieveRow");
+    const saveInput = document.getElementById("inputText1");
+    const submitBtn = document.getElementById("submit");
+    const retrieveInput = document.getElementById("inputText");
+    const showBtn = document.getElementById("show");
+
+    let storedPassword = "";
+    let mode = location.hash === "#retrieve" ? "retrieve" : "save";
+
+    // Resolve the unlocked context once and reuse it across toggles.
+    let _ctxPromise = null;
+    const context = () => (_ctxPromise = _ctxPromise || loadVaultContext());
+
+    (async () => {
+      try {
+        const ctx = await context();
+        if (websiteEl) websiteEl.textContent = ctx.host || "";
+      } catch (e) {
+        /* locked -> loadVaultContext already redirected */
+      }
+    })();
+
+    async function loadRetrieve() {
+      try {
+        const ctx = await context();
+        const vault = await getVaultCached(ctx);
+        storedPassword = vault.entries[ctx.host] || "";
+        retrieveInput.type = "password";
+        if (showBtn) showBtn.textContent = "Show";
+        if (storedPassword) {
+          retrieveInput.value = storedPassword;
+          retrieveInput.placeholder = "";
+        } else {
+          retrieveInput.value = "";
+          retrieveInput.placeholder = "No saved password for this site";
+        }
+      } catch (e) {
+        if (e.message !== "locked") console.error(e);
+      }
+    }
+
+    function setMode(next) {
+      mode = next;
+      if (next === "retrieve") {
+        textLabel.textContent = "Password for";
+        switchBtn.textContent = "Save";
+        saveRow.classList.add("hidden");
+        retrieveRow.classList.remove("hidden");
+        loadRetrieve();
+      } else {
+        textLabel.textContent = "Save password for";
+        switchBtn.textContent = "Retrieve";
+        retrieveRow.classList.add("hidden");
+        saveRow.classList.remove("hidden");
+        if (saveInput) saveInput.focus();
+      }
+    }
+
+    if (switchBtn) {
+      switchBtn.addEventListener("click", () =>
+        setMode(mode === "save" ? "retrieve" : "save")
+      );
+    }
+
+    if (showBtn && retrieveInput) {
+      showBtn.addEventListener("click", () => {
+        if (!storedPassword) return;
+        const hidden = retrieveInput.type === "password";
+        retrieveInput.type = hidden ? "text" : "password";
+        showBtn.textContent = hidden ? "Hide" : "Show";
+      });
+    }
+
+    if (submitBtn) {
+      submitBtn.addEventListener("click", async () => {
         try {
-          const ctx = await loadVaultContext();
+          const ctx = await context();
           if (!ctx.host) {
             alert("Could not read the current site.");
             return;
           }
-          const password = document.getElementById("inputText1").value;
+          const password = saveInput.value;
           if (!password) {
             alert("Enter a password to save.");
             return;
           }
 
-          const vault = await readVault(ctx);
+          const vault = await getVaultCached(ctx);
           vault.entries[ctx.host] = password;
           const cipherHex = await C.encryptToHex(
             ctx.key,
             C.serializeVault(vault)
           );
 
-          const contract = writeContract(ctx.providerUuid, ctx.account);
+          const contract = writeContract(ctx.providerRdns, ctx.account);
           const tx = await contract.setVault(cipherHex);
           await tx.wait();
+          storedPassword = password;
           alert("Password saved on-chain for " + ctx.host);
+          setMode("retrieve");
         } catch (e) {
           if (e.message === "locked") return;
           alert("Error saving password: " + (e.message || e));
@@ -294,32 +397,7 @@
         }
       });
     }
-  }
 
-  // =====================================================================
-  //  retrieve.html
-  // =====================================================================
-  if (location.href.includes("retrieve.html")) {
-    const getBtn = document.getElementById("get");
-    if (getBtn) {
-      getBtn.addEventListener("click", async () => {
-        try {
-          const ctx = await loadVaultContext();
-          const vault = await readVault(ctx);
-          const password = vault.entries[ctx.host];
-          const field = document.getElementById("inputText");
-          if (password) {
-            field.value = password;
-          } else {
-            field.value = "";
-            alert("No password stored for " + ctx.host);
-          }
-        } catch (e) {
-          if (e.message === "locked") return;
-          alert("Error retrieving password: " + (e.message || e));
-          console.error(e);
-        }
-      });
-    }
+    setMode(mode);
   }
 })();

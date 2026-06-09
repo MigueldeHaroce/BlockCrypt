@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="vault.css" />
+    <script src="config.js"></script>
+    <script src="recourses/ethers-5.2.umd.min.js" type="application/javascript"></script>
+    <script src="crypto.js"></script>
+    <script src="wallet.js"></script>
+    <title>BlockCrypt</title>
+</head>
+<body id="body">
+    <div id="mainContainer" class="bc-menu">
+        <div class="bc-toprow">
+            <div class="bc-site">
+                <div id="text">Save password for</div>
+                <div id="website">Loading</div>
+            </div>
+            <div id="switchBtn" class="bc-switch">Retrieve</div>
+        </div>
+
+        <!-- save mode -->
+        <div class="bc-inputrow" id="saveRow">
+            <input type="password" id="inputText1" placeholder="New password…" />
+            <div id="submit" class="bc-action">Save</div>
+        </div>
+
+        <!-- retrieve mode -->
+        <div class="bc-inputrow hidden" id="retrieveRow">
+            <input type="password" id="inputText" placeholder="No saved password" readonly />
+            <div id="show" class="bc-action">Show</div>
+        </div>
+    </div>
+    <script src="smartcontract.js"></script>
+</body>
+</html>

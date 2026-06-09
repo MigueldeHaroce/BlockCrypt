@@ -1,0 +1,365 @@
+/* BlockCrypt extension — shared theme.
+   Matches the website (docs/): dark grid background, font1, teal/khaki
+   palette, thin-bordered controls, minimal "web3" look. Imported by
+   index.css / save.css / retrieve.css. */
+
+@font-face {
+  font-family: font1;
+  src: url(fonts/1.otf) format("opentype");
+  font-display: swap;
+}
+
+:root {
+  --primary: #ced2a1;
+  --secondary: #376871;
+  --accent: #7593a7;
+  --bg: #101010;
+  --text: #f0f1e2;
+  --text2: #686868;
+  --line: #6868686b;
+  /* buttons: always dark, blue border that brightens on hover */
+  --btn-bg: #1a1a1a;
+  --btn-bg-hover: #232323;
+  --btn-border: #376871;
+  --btn-border-hover: var(--accent);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 420px;
+  font-family: "font1", "Inter", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+#mainContainer {
+  position: relative;
+  width: 420px;
+  min-height: 250px;
+  padding: 22px 24px 26px;
+  /* dark wash + 20px accent grid, same recipe as the website */
+  background-image: linear-gradient(90deg, #101010, rgba(0, 0, 0, 0.83)),
+    linear-gradient(var(--accent) 1px, transparent 0),
+    linear-gradient(90deg, var(--accent) 1px, #000 0);
+  background-size: auto, 20px 20px, 20px 20px;
+}
+
+/* ---- header ---- */
+.bc-header {
+  display: flex;
+  flex-direction: column;
+}
+.bc-titlewrap {
+  display: flex;
+  align-items: center;
+}
+.bc-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--secondary);
+  margin-right: 10px;
+}
+.bc-title {
+  font-size: 16px;
+  font-weight: 100;
+  letter-spacing: 0.5px;
+  color: var(--text);
+}
+.bc-subtitle {
+  font-size: 13px;
+  color: var(--text2);
+  margin-top: 3px;
+}
+
+/* ---- compact home (unlock) header ---- */
+#mainContainer.bc-home {
+  min-height: auto;
+  padding: 18px 20px 20px;
+}
+.bc-tophead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.bc-brand {
+  display: flex;
+  flex-direction: column;
+}
+.bc-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+.bc-identity #greetings {
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text2);
+}
+.bc-identity #user {
+  font-size: 16px;
+  color: var(--text);
+  margin-top: 3px;
+  font-weight: 700;
+}
+#userbox {
+  display: none; /* shown by JS once a wallet is connected */
+}
+
+/* ---- connect chip ---- */
+#connectBtn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--text2);
+  border: 1px solid var(--line);
+  border-radius: 0.125rem;
+  padding: 4px 10px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+#connectBtn::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+#connectBtn:hover {
+  background: var(--secondary);
+  color: #f3f4f6;
+  border-color: var(--secondary);
+}
+#connectBtn:active {
+  opacity: 0.8;
+}
+
+/* ---- identity row ---- */
+#content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 26px;
+}
+#img {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  background: #0c0c0c;
+  border: 1px solid var(--line);
+  -webkit-user-drag: none;
+  image-rendering: pixelated;
+}
+#frame {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+#greetings,
+#text {
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text2);
+}
+#user,
+#website {
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--text);
+  margin-top: 3px;
+  word-break: break-all;
+}
+
+/* ---- input + action button ---- */
+.bc-inputrow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-top: 22px;
+}
+input#inputText,
+input#inputText1 {
+  width: 100%;
+  height: 40px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 0.125rem;
+  padding: 0 48px 0 12px;
+  outline: none;
+  cursor: text;
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+input#inputText:focus,
+input#inputText1:focus {
+  background: var(--secondary);
+  border-color: var(--secondary);
+}
+input::placeholder {
+  color: var(--text2);
+}
+input#inputText[readonly] {
+  cursor: default;
+}
+
+#access {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 30px;
+  border-radius: 0.125rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  transition: background-color 0.2s, border-color 0.2s;
+}
+#access:hover {
+  background: var(--btn-bg-hover);
+  border-color: var(--btn-border-hover);
+}
+#access:active {
+  opacity: 0.7;
+}
+#submitImg,
+#getImg {
+  width: 18px;
+  height: auto;
+  -webkit-user-drag: none;
+}
+
+/* =====================================================================
+   Compact save/retrieve menu (.bc-menu). Scoped so the unlock screen
+   (index.html) keeps its own larger layout.
+   ===================================================================== */
+#mainContainer.bc-menu {
+  min-height: auto;
+  padding: 18px 20px 20px;
+}
+
+/* top row: site label/url on the left, blue mode-switch on the right */
+.bc-toprow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.bc-site {
+  min-width: 0;
+}
+.bc-menu #text {
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text2);
+}
+.bc-menu #website {
+  font-size: 16px;
+  color: var(--text);
+  margin-top: 4px;
+  max-width: 240px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* mode-switch button — dark with a blue border (brightens on hover) */
+.bc-switch {
+  flex: none;
+  background: var(--secondary);
+  color: #ffffff;
+  border: 1px solid var(--secondary);
+  border-radius: 0.125rem;
+  padding: 8px 18px;
+  font-size: 14px;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+.bc-switch:hover {
+  opacity: 0.88;
+}
+.bc-switch:active {
+  opacity: 0.75;
+}
+
+/* input + action button sit side by side */
+.bc-menu .bc-inputrow {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 18px;
+}
+.bc-menu #inputText,
+.bc-menu #inputText1 {
+  flex: 1;
+  height: 40px;
+  padding: 0 12px;
+}
+.bc-action {
+  flex: none;
+  min-width: 66px;
+  padding: 0 16px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 500;
+  /* always dark with a blue border, so it never blends with the focused
+     (teal) input next to it */
+  color: var(--text);
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  border-radius: 0.125rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+.bc-action:hover {
+  background: var(--btn-bg-hover);
+  border-color: var(--btn-border-hover);
+  color: #ffffff;
+}
+.bc-action:active {
+  opacity: 0.8;
+}
+
+/* in-place mode toggle (vault.html): no navigation, just a soft fade */
+.hidden {
+  display: none !important;
+}
+@keyframes bcFade {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.bc-menu .bc-inputrow:not(.hidden) {
+  animation: bcFade 0.18s ease;
+}
