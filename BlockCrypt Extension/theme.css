@@ -112,7 +112,9 @@ body {
   font-weight: 700;
 }
 #userbox {
-  display: none; /* shown by JS once a wallet is connected */
+  display: none; /* JS sets display:flex once a wallet is connected */
+  flex-direction: column;
+  align-items: flex-end;
 }
 
 /* ---- connect chip ---- */
@@ -349,6 +351,34 @@ input#inputText[readonly] {
 /* in-place mode toggle (vault.html): no navigation, just a soft fade */
 .hidden {
   display: none !important;
+}
+
+/* in-app notices (replace alert(): Chrome blocks dialogs inside the floating
+   panel's cross-origin iframe) */
+#bcToast {
+  position: fixed;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%) translateY(8px);
+  max-width: 90%;
+  background: var(--btn-bg);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  font-size: 12px;
+  padding: 7px 12px;
+  border-radius: 0.125rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s, transform 0.25s;
+  z-index: 500;
+  white-space: pre-line;
+}
+#bcToast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+#bcToast.error {
+  border-color: #a05050;
 }
 @keyframes bcFade {
   from {

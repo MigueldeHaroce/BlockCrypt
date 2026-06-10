@@ -7,14 +7,32 @@
 //                navigation). Save re-encrypts the whole vault and writes it
 //                on-chain (setVault); retrieve decrypts and reveals it.
 //
-// The derived AES key is cached for the popup session in chrome.storage.session
-// (in-memory, wiped when the browser closes) so both pages can share it without
-// re-prompting the wallet each time.
+// Both pages run inside the floating panel iframe injected by background.js
+// (there is no native popup — it couldn't float or survive an outside click).
+// The derived AES key is cached in chrome.storage.session (in-memory, wiped
+// when the browser closes) so both pages can share it without re-prompting
+// the wallet each time.
 
 (function () {
   const C = window.BlockCryptCrypto;
   const W = window.BlockCryptWallet;
   const CFG = window.BLOCKCRYPT_CONFIG;
+
+  // ---- in-app notices ---------------------------------------------------------
+  // Chrome silently drops alert()/confirm() inside the floating panel's
+  // cross-origin iframe, so all user feedback goes through this toast instead.
+  function notify(message, isError) {
+    let box = document.getElementById("bcToast");
+    if (!box) {
+      box = document.createElement("div");
+      box.id = "bcToast";
+      document.body.appendChild(box);
+    }
+    box.textContent = message;
+    box.className = isError ? "error show" : "show";
+    clearTimeout(notify._t);
+    notify._t = setTimeout(() => box.classList.remove("show"), 4000);
+  }
 
   // ---- guards ---------------------------------------------------------------
   function assertConfigured() {
@@ -22,9 +40,10 @@
       !CFG.CONTRACT_ADDRESS ||
       /^0x0{40}$/i.test(CFG.CONTRACT_ADDRESS)
     ) {
-      alert(
+      notify(
         "BlockCrypt is not configured yet: deploy pass.sol and set " +
-          "CONTRACT_ADDRESS in config.js (see DEPLOY.md)."
+          "CONTRACT_ADDRESS in config.js (see DEPLOY.md).",
+        true
       );
       throw new Error("CONTRACT_ADDRESS not set");
     }
@@ -85,6 +104,11 @@
   function pickWallet(list) {
     if (list.length === 1) return Promise.resolve(list[0].rdns);
     return new Promise((resolve) => {
+      // The overlay is position:fixed, which doesn't grow the document — bump
+      // body min-height so the floating panel iframe resizes to fit it.
+      const prevMinHeight = document.body.style.minHeight;
+      document.body.style.minHeight = list.length * 46 + 96 + "px";
+
       const overlay = document.createElement("div");
       overlay.style.cssText =
         "position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;" +
@@ -102,6 +126,7 @@
           "border-radius:4px;background:#376871;color:#fff;font-size:14px;";
         btn.onclick = () => {
           document.body.removeChild(overlay);
+          document.body.style.minHeight = prevMinHeight;
           resolve(w.rdns);
         };
         overlay.appendChild(btn);
@@ -166,7 +191,7 @@
           await setSession({ providerRdns: rdns, account });
           showConnected(account);
         } catch (e) {
-          alert(e.message);
+          notify(e.message, true);
         }
       });
     }
@@ -175,12 +200,12 @@
       try {
         assertConfigured();
         if (!session.account) {
-          alert("Connect your wallet first.");
+          notify("Connect your wallet first.", true);
           return;
         }
         const master = masterInput.value;
         if (!master) {
-          alert("Enter your master password.");
+          notify("Enter your master password.", true);
           return;
         }
 
@@ -198,8 +223,9 @@
         );
         const registered = await contract.isRegistered(session.account);
         if (!registered) {
-          alert(
-            "This wallet has no vault yet. Create one on the BlockCrypt website first."
+          notify(
+            "This wallet has no vault yet. Create one on the BlockCrypt website first.",
+            true
           );
           return;
         }
@@ -236,7 +262,7 @@
         });
         location.href = "vault.html#" + (hasEntryForSite ? "retrieve" : "save");
       } catch (e) {
-        alert(e.message || "Unlock failed");
+        notify(e.message || "Unlock failed", true);
         console.error(e);
       }
     }
@@ -256,7 +282,7 @@
     assertConfigured();
     const s = await getSession();
     if (!s.account || !s.keyHex || !s.providerRdns) {
-      alert("Vault locked. Open the extension and unlock first.");
+      notify("Vault locked. Unlock first.", true);
       location.href = "index.html";
       throw new Error("locked");
     }
@@ -368,12 +394,12 @@
         try {
           const ctx = await context();
           if (!ctx.host) {
-            alert("Could not read the current site.");
+            notify("Could not read the current site.", true);
             return;
           }
           const password = saveInput.value;
           if (!password) {
-            alert("Enter a password to save.");
+            notify("Enter a password to save.", true);
             return;
           }
 
@@ -385,14 +411,16 @@
           );
 
           const contract = writeContract(ctx.providerRdns, ctx.account);
+          notify("Confirm the transaction in your wallet…");
           const tx = await contract.setVault(cipherHex);
+          notify("Saving on-chain…");
           await tx.wait();
           storedPassword = password;
-          alert("Password saved on-chain for " + ctx.host);
+          notify("Password saved on-chain for " + ctx.host);
           setMode("retrieve");
         } catch (e) {
           if (e.message === "locked") return;
-          alert("Error saving password: " + (e.message || e));
+          notify("Error saving password: " + (e.message || e), true);
           console.error(e);
         }
       });
