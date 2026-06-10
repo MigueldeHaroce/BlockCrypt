@@ -7,11 +7,9 @@
 //                navigation). Save re-encrypts the whole vault and writes it
 //                on-chain (setVault); retrieve decrypts and reveals it.
 //
-// Both pages run inside the floating panel iframe injected by background.js
-// (there is no native popup — it couldn't float or survive an outside click).
-// The derived AES key is cached in chrome.storage.session (in-memory, wiped
-// when the browser closes) so both pages can share it without re-prompting
-// the wallet each time.
+// Both pages run in the regular browser-action popup. The derived AES key is
+// cached in chrome.storage.session (in-memory, wiped when the browser closes)
+// so both pages can share it without re-prompting the wallet each time.
 
 (function () {
   const C = window.BlockCryptCrypto;
@@ -19,19 +17,64 @@
   const CFG = window.BLOCKCRYPT_CONFIG;
 
   // ---- in-app notices ---------------------------------------------------------
-  // Chrome silently drops alert()/confirm() inside the floating panel's
-  // cross-origin iframe, so all user feedback goes through this toast instead.
-  function notify(message, isError) {
+  // All user feedback goes through this toast (nicer than alert() and keeps
+  // the popup styling consistent).
+  function setToast(message, className, withSpinner) {
     let box = document.getElementById("bcToast");
     if (!box) {
       box = document.createElement("div");
       box.id = "bcToast";
       document.body.appendChild(box);
     }
-    box.textContent = message;
-    box.className = isError ? "error show" : "show";
+    box.textContent = "";
+    if (withSpinner) {
+      const spin = document.createElement("span");
+      spin.className = "spin";
+      box.appendChild(spin);
+    }
+    box.appendChild(document.createTextNode(message));
+    box.className = className;
     clearTimeout(notify._t);
-    notify._t = setTimeout(() => box.classList.remove("show"), 4000);
+    return box;
+  }
+
+  // Auto-hides after 4s.
+  function notify(message, isError) {
+    setToast(message, isError ? "error show" : "show", false);
+    notify._t = setTimeout(() => {
+      const box = document.getElementById("bcToast");
+      if (box) box.classList.remove("show");
+    }, 4000);
+  }
+
+  // Sticky "working…" notice with a spinner. Stays visible until the next
+  // notify()/notifyLoading() replaces it (e.g. when the transaction confirms).
+  function notifyLoading(message) {
+    setToast(message, "show", true);
+  }
+
+  // Freeze the whole popup while the chain confirms: a full-window overlay
+  // (below the toast) swallows clicks, and the action button is disabled so
+  // Enter cannot re-submit either.
+  function lockUI() {
+    let overlay = document.getElementById("bcLock");
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.id = "bcLock";
+      document.body.appendChild(overlay);
+    }
+    const submit = document.getElementById("submit");
+    if (submit) submit.classList.add("busy");
+    if (document.activeElement && document.activeElement.blur) {
+      document.activeElement.blur();
+    }
+  }
+
+  function unlockUI() {
+    const overlay = document.getElementById("bcLock");
+    if (overlay) overlay.remove();
+    const submit = document.getElementById("submit");
+    if (submit) submit.classList.remove("busy");
   }
 
   // ---- guards ---------------------------------------------------------------
@@ -53,7 +96,7 @@
   function getSession() {
     return new Promise((resolve) => {
       chrome.storage.session.get(
-        ["providerRdns", "account", "keyHex"],
+        ["providerRdns", "account", "keyHex", "pendingTx"],
         (s) => resolve(s || {})
       );
     });
@@ -105,7 +148,7 @@
     if (list.length === 1) return Promise.resolve(list[0].rdns);
     return new Promise((resolve) => {
       // The overlay is position:fixed, which doesn't grow the document — bump
-      // body min-height so the floating panel iframe resizes to fit it.
+      // body min-height so the panel iframe resizes to fit it.
       const prevMinHeight = document.body.style.minHeight;
       document.body.style.minHeight = list.length * 46 + 96 + "px";
 
@@ -323,7 +366,15 @@
     const showBtn = document.getElementById("show");
 
     let storedPassword = "";
+    let entryLoaded = false;
     let mode = location.hash === "#retrieve" ? "retrieve" : "save";
+
+    // Save/change flow is a small state machine on ONE input:
+    //   "old"  -> verify the current password (only when changing)
+    //   "new1" -> type the new password
+    //   "new2" -> retype it to confirm, then write on-chain
+    let saveStep = "new1";
+    let pendingPassword = "";
 
     // Resolve the unlocked context once and reuse it across toggles.
     let _ctxPromise = null;
@@ -338,11 +389,43 @@
       }
     })();
 
+    // If a save was in flight when the popup last closed, pick the wait back
+    // up: same frozen UI + "Saving on-chain…" notice until the tx confirms.
+    (async () => {
+      try {
+        const s = await getSession();
+        if (!s.pendingTx || !s.pendingTx.hash || !s.providerRdns) return;
+        lockUI();
+        notifyLoading("Saving on-chain…");
+        const provider = ethersProvider(s.providerRdns);
+        await provider.waitForTransaction(s.pendingTx.hash);
+        await setSession({ pendingTx: null });
+        // The chain changed under us: drop stale caches and re-read.
+        _vaultCache = null;
+        entryLoaded = false;
+        unlockUI();
+        notify("Password saved on-chain for " + s.pendingTx.host);
+        setMode("retrieve");
+      } catch (e) {
+        await setSession({ pendingTx: null });
+        unlockUI();
+        notify("Error confirming the pending save: " + (e.message || e), true);
+        console.error(e);
+      }
+    })();
+
+    // Load (once) the password stored for this site into storedPassword.
+    async function ensureEntry() {
+      if (entryLoaded) return;
+      const ctx = await context();
+      const vault = await getVaultCached(ctx);
+      storedPassword = vault.entries[ctx.host] || "";
+      entryLoaded = true;
+    }
+
     async function loadRetrieve() {
       try {
-        const ctx = await context();
-        const vault = await getVaultCached(ctx);
-        storedPassword = vault.entries[ctx.host] || "";
+        await ensureEntry();
         retrieveInput.type = "password";
         if (showBtn) showBtn.textContent = "Show";
         if (storedPassword) {
@@ -352,25 +435,53 @@
           retrieveInput.value = "";
           retrieveInput.placeholder = "No saved password for this site";
         }
+        // Now that we know whether an entry exists, fix the switch label.
+        if (mode === "retrieve") {
+          switchBtn.textContent = storedPassword ? "Change" : "Save";
+        }
       } catch (e) {
         if (e.message !== "locked") console.error(e);
       }
+    }
+
+    // Configure the save row for either "register new" or "change existing".
+    async function configureSave() {
+      pendingPassword = "";
+      saveInput.value = "";
+      saveInput.placeholder = "Loading…";
+      try {
+        await ensureEntry();
+      } catch (e) {
+        return; // locked -> already redirected
+      }
+      if (mode !== "save") return; // user toggled away while loading
+      if (storedPassword) {
+        textLabel.textContent = "Change password for";
+        submitBtn.textContent = "Change";
+        saveStep = "old";
+        saveInput.placeholder = "Current password…";
+      } else {
+        textLabel.textContent = "Save password for";
+        submitBtn.textContent = "Save";
+        saveStep = "new1";
+        saveInput.placeholder = "Save new password…";
+      }
+      saveInput.focus();
     }
 
     function setMode(next) {
       mode = next;
       if (next === "retrieve") {
         textLabel.textContent = "Password for";
-        switchBtn.textContent = "Save";
+        switchBtn.textContent = storedPassword ? "Change" : "Save";
         saveRow.classList.add("hidden");
         retrieveRow.classList.remove("hidden");
         loadRetrieve();
       } else {
-        textLabel.textContent = "Save password for";
         switchBtn.textContent = "Retrieve";
         retrieveRow.classList.add("hidden");
         saveRow.classList.remove("hidden");
-        if (saveInput) saveInput.focus();
+        configureSave();
       }
     }
 
@@ -389,40 +500,112 @@
       });
     }
 
+    // Write pendingPassword on-chain; revert the cache if the tx fails.
+    async function commitPassword() {
+      const ctx = await context();
+      if (!ctx.host) {
+        notify("Could not read the current site.", true);
+        return;
+      }
+      const vault = await getVaultCached(ctx);
+      const previous = vault.entries[ctx.host];
+      vault.entries[ctx.host] = pendingPassword;
+      try {
+        const cipherHex = await C.encryptToHex(
+          ctx.key,
+          C.serializeVault(vault)
+        );
+        const contract = writeContract(ctx.providerRdns, ctx.account);
+        notifyLoading("Confirm the transaction in your wallet…");
+        const tx = await contract.setVault(cipherHex);
+        // Tx sent: freeze the popup until the chain confirms, and remember the
+        // tx so a reopened popup resumes this same wait (the browser closes
+        // popups on focus loss — that part cannot be prevented).
+        lockUI();
+        notifyLoading("Saving on-chain…");
+        await setSession({ pendingTx: { hash: tx.hash, host: ctx.host } });
+        await tx.wait();
+        await setSession({ pendingTx: null });
+        unlockUI();
+        storedPassword = pendingPassword;
+        pendingPassword = "";
+        notify("Password saved on-chain for " + ctx.host);
+        setMode("retrieve");
+      } catch (e) {
+        unlockUI();
+        setSession({ pendingTx: null });
+        // Keep the cache consistent with the chain.
+        if (previous === undefined) delete vault.entries[ctx.host];
+        else vault.entries[ctx.host] = previous;
+        throw e;
+      }
+    }
+
     if (submitBtn) {
       submitBtn.addEventListener("click", async () => {
+        if (submitBtn.classList.contains("busy")) return; // tx in flight
         try {
-          const ctx = await context();
-          if (!ctx.host) {
-            notify("Could not read the current site.", true);
-            return;
-          }
-          const password = saveInput.value;
-          if (!password) {
-            notify("Enter a password to save.", true);
+          const value = saveInput.value;
+
+          if (saveStep === "old") {
+            if (!value) {
+              notify("Enter your current password.", true);
+              return;
+            }
+            await ensureEntry();
+            if (value !== storedPassword) {
+              notify("Wrong current password.", true);
+              saveInput.value = "";
+              return;
+            }
+            saveStep = "new1";
+            saveInput.value = "";
+            saveInput.placeholder = "New password…";
+            saveInput.focus();
             return;
           }
 
-          const vault = await getVaultCached(ctx);
-          vault.entries[ctx.host] = password;
-          const cipherHex = await C.encryptToHex(
-            ctx.key,
-            C.serializeVault(vault)
-          );
+          if (saveStep === "new1") {
+            if (!value) {
+              notify("Enter a password to save.", true);
+              return;
+            }
+            pendingPassword = value;
+            saveStep = "new2";
+            saveInput.value = "";
+            saveInput.placeholder = "Confirm new password…";
+            saveInput.focus();
+            return;
+          }
 
-          const contract = writeContract(ctx.providerRdns, ctx.account);
-          notify("Confirm the transaction in your wallet…");
-          const tx = await contract.setVault(cipherHex);
-          notify("Saving on-chain…");
-          await tx.wait();
-          storedPassword = password;
-          notify("Password saved on-chain for " + ctx.host);
-          setMode("retrieve");
+          // saveStep === "new2": confirm and commit.
+          if (value !== pendingPassword) {
+            notify("Passwords don't match. Try again.", true);
+            pendingPassword = "";
+            saveStep = "new1";
+            saveInput.value = "";
+            saveInput.placeholder = "New password…";
+            saveInput.focus();
+            return;
+          }
+          submitBtn.classList.add("busy");
+          try {
+            await commitPassword();
+          } finally {
+            submitBtn.classList.remove("busy");
+          }
         } catch (e) {
           if (e.message === "locked") return;
           notify("Error saving password: " + (e.message || e), true);
           console.error(e);
         }
+      });
+    }
+
+    // Enter in the save input behaves like clicking the action button.
+    if (saveInput && submitBtn) {
+      saveInput.addEventListener("keypress", (ev) => {
+        if (ev.key === "Enter") submitBtn.click();
       });
     }
 
