@@ -20,8 +20,7 @@
         key: "ethereum",
         label: "Ethereum",
         evm: true,
-        // ⚠️ Deploy pass.sol on Ethereum mainnet and paste the address here.
-        contractAddress: "0x0000000000000000000000000000000000000000",
+        contractAddress: "0x40eDA2aB385b89582b405E706dd97896e84913dA",
         chainIdHex: "0x1",
         chainParams: {
           chainId: "0x1",
@@ -35,8 +34,7 @@
         key: "base",
         label: "Base",
         evm: true,
-        // ⚠️ Deploy pass.sol on Base and paste the address here.
-        contractAddress: "0x0000000000000000000000000000000000000000",
+        contractAddress: "0x40eDA2aB385b89582b405E706dd97896e84913dA",
         chainIdHex: "0x2105",
         chainParams: {
           chainId: "0x2105",

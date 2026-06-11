@@ -11,8 +11,8 @@ Currently deployed:
 | Network  | Contract address                              |
 |----------|-----------------------------------------------|
 | Sepolia  | `0x7a3c1c5DA22095506396Acc3a34f71eeEA576FAC`  |
-| Ethereum | — not deployed (placeholder)                  |
-| Base     | — not deployed (placeholder)                  |
+| Ethereum | `0x40eDA2aB385b89582b405E706dd97896e84913dA`  |
+| Base     | `0x40eDA2aB385b89582b405E706dd97896e84913dA`  |
 
 ## 1. Deploy the contract on a network (Remix, ~3 min each)
 
