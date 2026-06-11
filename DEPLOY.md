@@ -1,10 +1,20 @@
 # BlockCrypt — Deploy & Configure
 
-The security rewrite changed the smart contract (`BlockCrypt Extension/pass.sol`),
-so the **old `0x0ac2…c4b` contract no longer matches the code**. You must deploy
-the new `Keychain` contract and point the app at it.
+BlockCrypt is **multi-network**: the same `Keychain` contract
+(`BlockCrypt Extension/pass.sol`) can be deployed on any EVM network. The user
+picks the network on the sign-up website and in the extension. Networks are
+defined in `config.js` → `NETWORKS` (Ethereum, Base, Sepolia testnet; Solana is
+listed in the UI but disabled — see the note at the bottom).
 
-## 1. Deploy the new contract (Remix, ~3 min)
+Currently deployed:
+
+| Network  | Contract address                              |
+|----------|-----------------------------------------------|
+| Sepolia  | `0x7a3c1c5DA22095506396Acc3a34f71eeEA576FAC`  |
+| Ethereum | — not deployed (placeholder)                  |
+| Base     | — not deployed (placeholder)                  |
+
+## 1. Deploy the contract on a network (Remix, ~3 min each)
 
 1. Open <https://remix.ethereum.org>.
 2. Create `pass.sol` and paste the contents of
@@ -12,17 +22,24 @@ the new `Keychain` contract and point the app at it.
 3. **Solidity Compiler** tab → compiler `0.8.20` or newer → **Compile**.
 4. **Deploy & Run** tab:
    - Environment: **Injected Provider** (connect your wallet).
-   - Make sure your wallet is on your **test network** (e.g. Sepolia) and funded
-     with test ETH.
+   - Switch your wallet to the **target network** (Ethereum, Base, Sepolia…).
+     On mainnets this costs **real ETH**; Base is far cheaper than Ethereum L1.
    - Select the `Keychain` contract → **Deploy** → confirm in your wallet.
 5. Copy the deployed contract address from the **Deployed Contracts** panel.
 
 ## 2. Point the app at the new address
 
-Edit **`BlockCrypt Extension/config.js`** and set:
+Edit **`BlockCrypt Extension/config.js`** and paste the address into that
+network's entry:
 
 ```js
-CONTRACT_ADDRESS: "0xYOUR_NEW_ADDRESS",
+NETWORKS: {
+  base: {
+    ...
+    contractAddress: "0xYOUR_BASE_ADDRESS", // ← here
+    ...
+  },
+}
 ```
 
 Then copy that file over the website's copy so they stay identical:
@@ -31,8 +48,19 @@ Then copy that file over the website's copy so they stay identical:
 Copy-Item "BlockCrypt Extension/config.js" docs/config.js -Force
 ```
 
-> `config.js` is the single source of truth for the address **and** the ABI.
-> If you ever change `pass.sol`, update the ABI here too and re-copy to `docs/`.
+> `config.js` is the single source of truth for the network list, addresses
+> **and** the ABI. If you ever change `pass.sol`, update the ABI here too and
+> re-copy to `docs/`. A zero address means "not deployed there yet" — the UI
+> refuses that network with a clear message.
+>
+> Each network is independent: a vault registered on Sepolia does **not** exist
+> on Base. The user selects the network at sign-up and again in the extension
+> (the choice is remembered).
+>
+> **Why Solana is disabled:** Solana is not an EVM chain — it cannot run
+> Solidity contracts, its wallets don't speak EIP-1193, and signatures work
+> differently. Real Solana support requires a separate on-chain program (Rust)
+> plus a Solana wallet adapter; it is a future project, not a config change.
 
 ## 3. Load the extension
 

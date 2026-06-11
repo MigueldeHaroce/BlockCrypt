@@ -78,17 +78,23 @@
   }
 
   // ---- guards ---------------------------------------------------------------
-  function assertConfigured() {
-    if (
-      !CFG.CONTRACT_ADDRESS ||
-      /^0x0{40}$/i.test(CFG.CONTRACT_ADDRESS)
-    ) {
+  function assertConfigured(net) {
+    if (!net || !net.evm) {
       notify(
-        "BlockCrypt is not configured yet: deploy pass.sol and set " +
-          "CONTRACT_ADDRESS in config.js (see DEPLOY.md).",
+        (net ? net.label : "That network") +
+          " is not supported yet — BlockCrypt runs on EVM networks " +
+          "(Ethereum, Base, …) for now.",
         true
       );
-      throw new Error("CONTRACT_ADDRESS not set");
+      throw new Error("unsupported network");
+    }
+    if (!net.contractAddress || /^0x0{40}$/i.test(net.contractAddress)) {
+      notify(
+        "BlockCrypt is not deployed on " + net.label + " yet: deploy pass.sol " +
+          "there and set its address in config.js (see DEPLOY.md).",
+        true
+      );
+      throw new Error("contract address not set for " + net.key);
     }
   }
 
@@ -96,7 +102,7 @@
   function getSession() {
     return new Promise((resolve) => {
       chrome.storage.session.get(
-        ["providerRdns", "account", "keyHex", "pendingTx"],
+        ["providerRdns", "account", "keyHex", "pendingTx", "networkKey"],
         (s) => resolve(s || {})
       );
     });
@@ -104,6 +110,27 @@
 
   function setSession(data) {
     return new Promise((resolve) => chrome.storage.session.set(data, resolve));
+  }
+
+  // ---- network preference (persists across browser restarts) ----------------
+  function loadNetworkKey() {
+    return new Promise((resolve) => {
+      try {
+        chrome.storage.local.get("networkKey", (r) =>
+          resolve(r && r.networkKey && CFG.NETWORKS[r.networkKey] ? r.networkKey : CFG.DEFAULT_NETWORK)
+        );
+      } catch (e) {
+        resolve(CFG.DEFAULT_NETWORK);
+      }
+    });
+  }
+
+  function saveNetworkKey(key) {
+    try {
+      chrome.storage.local.set({ networkKey: key });
+    } catch (e) {
+      /* preview / no chrome */
+    }
   }
 
   // ---- active tab host (the stable vault key for a site) --------------------
@@ -126,18 +153,18 @@
     return new ethers.providers.Web3Provider(shim, "any");
   }
 
-  function readContract(rdns) {
+  function readContract(rdns, net) {
     return new ethers.Contract(
-      CFG.CONTRACT_ADDRESS,
+      net.contractAddress,
       CFG.CONTRACT_ABI,
       ethersProvider(rdns)
     );
   }
 
-  function writeContract(rdns, account) {
+  function writeContract(rdns, net, account) {
     const provider = ethersProvider(rdns);
     return new ethers.Contract(
-      CFG.CONTRACT_ADDRESS,
+      net.contractAddress,
       CFG.CONTRACT_ABI,
       provider.getSigner(account)
     );
@@ -178,7 +205,7 @@
     });
   }
 
-  async function connectWallet() {
+  async function connectWallet(net) {
     const wallets = await W.discover();
     if (!wallets.length) {
       throw new Error(
@@ -189,7 +216,7 @@
     const rdns = await pickWallet(wallets);
     const accounts = await W.request(rdns, "eth_requestAccounts", []);
     if (!accounts || !accounts.length) throw new Error("No account authorized");
-    await W.ensureChain(rdns); // switch to the contract's network
+    await W.ensureChain(rdns, net); // switch to the chosen network
     return { rdns, account: accounts[0] };
   }
 
@@ -208,6 +235,41 @@
     const userBox = document.getElementById("userbox");
 
     let session = { rdns: null, account: null };
+
+    // ---- network selector pills ----
+    const netRow = document.getElementById("netRow");
+    let networkKey = CFG.DEFAULT_NETWORK;
+
+    function paintNets() {
+      if (!netRow) return;
+      netRow.querySelectorAll(".bc-net").forEach((el) => {
+        el.classList.toggle("selected", el.dataset.net === networkKey);
+      });
+    }
+
+    loadNetworkKey().then((key) => {
+      networkKey = key;
+      paintNets();
+    });
+
+    if (netRow) {
+      netRow.addEventListener("click", (e) => {
+        const el = e.target.closest(".bc-net");
+        if (!el) return;
+        const net = CFG.NETWORKS[el.dataset.net];
+        if (!net || !net.evm) {
+          notify(
+            "Solana support is coming soon — BlockCrypt runs on EVM networks " +
+              "(Ethereum, Base, …) for now.",
+            true
+          );
+          return;
+        }
+        networkKey = el.dataset.net;
+        saveNetworkKey(networkKey);
+        paintNets();
+      });
+    }
 
     // Swap the connect chip for the Welcome + address box (top-right).
     function showConnected(account) {
@@ -228,8 +290,9 @@
     if (connectBtn) {
       connectBtn.addEventListener("click", async () => {
         try {
-          assertConfigured();
-          const { rdns, account } = await connectWallet();
+          const net = CFG.getNetwork(networkKey);
+          assertConfigured(net);
+          const { rdns, account } = await connectWallet(net);
           session = { rdns, account };
           await setSession({ providerRdns: rdns, account });
           showConnected(account);
@@ -241,7 +304,8 @@
 
     async function unlock() {
       try {
-        assertConfigured();
+        const net = CFG.getNetwork(networkKey);
+        assertConfigured(net);
         if (!session.account) {
           notify("Connect your wallet first.", true);
           return;
@@ -257,17 +321,18 @@
         const accts = await W.request(session.rdns, "eth_requestAccounts", []);
         if (accts && accts.length) session.account = accts[0];
 
-        await W.ensureChain(session.rdns); // guard against a mid-session switch
+        await W.ensureChain(session.rdns, net); // switch to the chosen network
         const provider = ethersProvider(session.rdns);
         const contract = new ethers.Contract(
-          CFG.CONTRACT_ADDRESS,
+          net.contractAddress,
           CFG.CONTRACT_ABI,
           provider
         );
         const registered = await contract.isRegistered(session.account);
         if (!registered) {
           notify(
-            "This wallet has no vault yet. Create one on the BlockCrypt website first.",
+            "This wallet has no vault on " + net.label + ". Create one on the " +
+              "BlockCrypt website (or pick the network where you registered).",
             true
           );
           return;
@@ -302,6 +367,7 @@
           providerRdns: session.rdns,
           account: session.account,
           keyHex,
+          networkKey, // the vault page works on this same network
         });
         location.href = "vault.html#" + (hasEntryForSite ? "retrieve" : "save");
       } catch (e) {
@@ -322,21 +388,22 @@
   //  shared loader for the vault page
   // =====================================================================
   async function loadVaultContext() {
-    assertConfigured();
     const s = await getSession();
     if (!s.account || !s.keyHex || !s.providerRdns) {
       notify("Vault locked. Unlock first.", true);
       location.href = "index.html";
       throw new Error("locked");
     }
-    await W.ensureChain(s.providerRdns); // make sure reads/writes hit the right chain
+    const net = CFG.getNetwork(s.networkKey);
+    assertConfigured(net);
+    await W.ensureChain(s.providerRdns, net); // reads/writes must hit that chain
     const key = await C.importRawKeyHex(s.keyHex);
     const host = await getActiveHost();
-    return { ...s, key, host };
+    return { ...s, key, host, net };
   }
 
   async function readVault(ctx) {
-    const contract = readContract(ctx.providerRdns);
+    const contract = readContract(ctx.providerRdns, ctx.net);
     const [, cipherHex] = await contract.getVaultOf(ctx.account);
     if (!cipherHex || cipherHex === "0x") return C.emptyVault();
     const plain = await C.decryptFromHex(ctx.key, cipherHex);
@@ -397,6 +464,8 @@
         if (!s.pendingTx || !s.pendingTx.hash || !s.providerRdns) return;
         lockUI();
         notifyLoading("Saving on-chain…");
+        // The receipt must be looked up on the network the tx was sent to.
+        await W.ensureChain(s.providerRdns, CFG.getNetwork(s.networkKey));
         const provider = ethersProvider(s.providerRdns);
         await provider.waitForTransaction(s.pendingTx.hash);
         await setSession({ pendingTx: null });
@@ -515,7 +584,7 @@
           ctx.key,
           C.serializeVault(vault)
         );
-        const contract = writeContract(ctx.providerRdns, ctx.account);
+        const contract = writeContract(ctx.providerRdns, ctx.net, ctx.account);
         notifyLoading("Confirm the transaction in your wallet…");
         const tx = await contract.setVault(cipherHex);
         // Tx sent: freeze the popup until the chain confirms, and remember the

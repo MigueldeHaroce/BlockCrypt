@@ -270,3 +270,50 @@ body, html {
     display: flex;
 
 }
+
+#networkRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+#networkLabel {
+    font-size: 12px;
+    color: var(--text2);
+    margin-right: 4px;
+}
+
+.netPill {
+    font-size: 12px;
+    letter-spacing: 0.3px;
+    color: var(--text2);
+    border: 1px solid var(--line);
+    border-radius: 0.125rem;
+    padding: 3px 10px;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.netPill:hover {
+    color: var(--text);
+    border-color: var(--accent);
+}
+
+.netPill.selected {
+    background: var(--secondary);
+    color: #ffffff;
+    border-color: var(--secondary);
+}
+
+.netPill.disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.netPill.disabled:hover {
+    color: var(--text2);
+    border-color: var(--line);
+}

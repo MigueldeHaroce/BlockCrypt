@@ -57,27 +57,25 @@
     };
   }
 
-  // Make sure the wallet is on the network where the contract lives.
-  async function ensureChain(uuid) {
-    const cfg = root.BLOCKCRYPT_CONFIG;
-    if (!cfg || !cfg.EXPECTED_CHAIN_ID_HEX) return;
+  // Make sure the wallet is on the given network (a NETWORKS entry from
+  // config.js). Switches (or adds) the chain via the standard wallet RPCs.
+  async function ensureChain(uuid, net) {
+    if (!net || !net.chainIdHex) return;
     const current = await request(uuid, "eth_chainId", []);
-    if (
-      String(current).toLowerCase() === cfg.EXPECTED_CHAIN_ID_HEX.toLowerCase()
-    ) {
+    if (String(current).toLowerCase() === net.chainIdHex.toLowerCase()) {
       return;
     }
     try {
       await request(uuid, "wallet_switchEthereumChain", [
-        { chainId: cfg.EXPECTED_CHAIN_ID_HEX },
+        { chainId: net.chainIdHex },
       ]);
     } catch (e) {
-      if (e && e.code === 4902 && cfg.CHAIN_PARAMS) {
-        await request(uuid, "wallet_addEthereumChain", [cfg.CHAIN_PARAMS]);
+      if (e && e.code === 4902 && net.chainParams) {
+        await request(uuid, "wallet_addEthereumChain", [net.chainParams]);
       } else {
         throw new Error(
           "Wrong network. Switch your wallet to " +
-            (cfg.CHAIN_PARAMS ? cfg.CHAIN_PARAMS.chainName : "the right network") +
+            (net.chainParams ? net.chainParams.chainName : net.label) +
             " and try again."
         );
       }

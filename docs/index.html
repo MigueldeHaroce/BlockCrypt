@@ -33,6 +33,13 @@
         </div>
         <div id="signUp">
             <div id="descriptionUp">Your vault is tied to your wallet address and unlocked with a master password. The password is combined with a wallet signature to encrypt your vault — it never leaves your browser and cannot be reset, so store it safely!</div>
+            <div id="networkRow">
+                <span id="networkLabel">Network</span>
+                <span class="netPill" data-net="ethereum">Ethereum</span>
+                <span class="netPill" data-net="base">Base</span>
+                <span class="netPill" data-net="sepolia">Sepolia · test</span>
+                <span class="netPill disabled" data-net="solana" title="Coming soon — Solana is not EVM-compatible">Solana</span>
+            </div>
             <div id="buttonsUp">
                 <input type="password" id="inputText" placeholder="Choose a master password..." />
                 <div id="newUser">Create vault</div>

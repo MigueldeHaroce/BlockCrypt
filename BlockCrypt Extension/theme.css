@@ -405,6 +405,42 @@ input#inputText[readonly] {
   pointer-events: none;
 }
 
+/* ---- network selector pills ---- */
+.bc-nets {
+  display: flex;
+  gap: 6px;
+  margin-top: 16px;
+}
+.bc-net {
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  color: var(--text2);
+  border: 1px solid var(--line);
+  border-radius: 0.125rem;
+  padding: 3px 9px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+.bc-net:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.bc-net.selected {
+  background: var(--secondary);
+  color: #ffffff;
+  border-color: var(--secondary);
+}
+.bc-net.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.bc-net.disabled:hover {
+  color: var(--text2);
+  border-color: var(--line);
+}
+
 /* full-popup interaction lock while "Saving on-chain…" is active; the toast
    (z-index 500) stays visible above it */
 #bcLock {

@@ -1,11 +1,13 @@
 // BlockCrypt website — sign-up (vault creation).
 //
 // Identity is the wallet ADDRESS (no more public "ID"). To create a vault the
-// user connects any wallet (EIP-6963) and picks a master password. We then:
+// user picks a NETWORK (Ethereum, Base, … — see NETWORKS in config.js),
+// connects any wallet (EIP-6963) and chooses a master password. We then:
 //   1. generate a random PBKDF2 salt,
 //   2. ask the wallet to sign the fixed key-derivation message,
 //   3. derive the AES-256-GCM key from (master password + signature, salt),
-//   4. encrypt an empty vault and call register(salt, ciphertext) on-chain.
+//   4. encrypt an empty vault and call register(salt, ciphertext) on the
+//      chosen network's contract.
 //
 // The master password and signature never leave the browser. Only the public
 // salt and the (useless-without-the-secret) ciphertext are written on-chain.
@@ -18,16 +20,58 @@
   const connectBtn = document.getElementById("connectBtn");
   const newUserButton = document.getElementById("newUser");
   const masterInput = document.getElementById("inputText");
+  const networkRow = document.getElementById("networkRow");
 
   let session = { uuid: null, account: null };
 
-  function assertConfigured() {
-    if (!CFG.CONTRACT_ADDRESS || /^0x0{40}$/i.test(CFG.CONTRACT_ADDRESS)) {
+  // ---- network selector ------------------------------------------------------
+  let networkKey =
+    localStorage.bcNetwork && CFG.NETWORKS[localStorage.bcNetwork]
+      ? localStorage.bcNetwork
+      : CFG.DEFAULT_NETWORK;
+
+  function paintNets() {
+    if (!networkRow) return;
+    networkRow.querySelectorAll(".netPill").forEach((el) => {
+      el.classList.toggle("selected", el.dataset.net === networkKey);
+    });
+  }
+  paintNets();
+
+  if (networkRow) {
+    networkRow.addEventListener("click", (e) => {
+      const el = e.target.closest(".netPill");
+      if (!el) return;
+      const net = CFG.NETWORKS[el.dataset.net];
+      if (!net || !net.evm) {
+        alert(
+          "Solana support is coming soon. BlockCrypt's vault contract is " +
+            "EVM-only (Ethereum, Base, …); Solana is a different runtime and " +
+            "needs its own on-chain program."
+        );
+        return;
+      }
+      networkKey = el.dataset.net;
+      localStorage.bcNetwork = networkKey;
+      paintNets();
+    });
+  }
+
+  function currentNet() {
+    return CFG.getNetwork(networkKey);
+  }
+
+  function assertConfigured(net) {
+    if (!net || !net.evm) {
+      alert(net ? net.label + " is not supported yet." : "Pick a network.");
+      throw new Error("unsupported network");
+    }
+    if (!net.contractAddress || /^0x0{40}$/i.test(net.contractAddress)) {
       alert(
-        "BlockCrypt is not configured yet: deploy pass.sol and set " +
-          "CONTRACT_ADDRESS in config.js (see DEPLOY.md)."
+        "BlockCrypt is not deployed on " + net.label + " yet: deploy pass.sol " +
+          "there and set its address in config.js (see DEPLOY.md)."
       );
-      throw new Error("CONTRACT_ADDRESS not set");
+      throw new Error("contract address not set for " + net.key);
     }
   }
 
@@ -59,11 +103,11 @@
     });
   }
 
-  function signerAndContract(uuid, account) {
+  function signerAndContract(uuid, account, net) {
     const provider = new ethers.providers.Web3Provider(W.eip1193(uuid), "any");
     const signer = provider.getSigner(account);
     const contract = new ethers.Contract(
-      CFG.CONTRACT_ADDRESS,
+      net.contractAddress,
       CFG.CONTRACT_ABI,
       signer
     );
@@ -72,7 +116,6 @@
 
   connectBtn.addEventListener("click", async function () {
     try {
-      assertConfigured();
       const wallets = await W.discover();
       if (!wallets.length) {
         alert("No wallet detected. Install MetaMask, Coinbase Wallet, Rabby, …");
@@ -82,7 +125,6 @@
       const accounts = await W.request(uuid, "eth_requestAccounts", []);
       if (!accounts || !accounts.length) return;
       session = { uuid, account: accounts[0] };
-      await W.ensureChain(uuid); // switch to the contract's network
       connectBtn.style.display = "none";
       console.log("Connected account:", session.account);
     } catch (error) {
@@ -93,7 +135,8 @@
 
   const newUserFunction = async () => {
     try {
-      assertConfigured();
+      const net = currentNet();
+      assertConfigured(net);
       if (!session.account) {
         alert("Connect your wallet first.");
         return;
@@ -104,15 +147,20 @@
         return;
       }
 
-      await W.ensureChain(session.uuid); // guard against a mid-session switch
+      // Put the wallet on the chosen network before touching the contract.
+      await W.ensureChain(session.uuid, net);
 
       const { signer, contract } = signerAndContract(
         session.uuid,
-        session.account
+        session.account,
+        net
       );
 
       if (await contract.isRegistered(session.account)) {
-        alert("This wallet already has a vault. You cannot register twice.");
+        alert(
+          "This wallet already has a vault on " + net.label + ". You cannot " +
+            "register twice on the same network."
+        );
         return;
       }
 
@@ -133,13 +181,14 @@
       await tx.wait();
 
       alert(
-        "Vault created! Remember your master password — it cannot be reset and " +
-          "is required (together with this wallet) to open your vault."
+        "Vault created on " + net.label + "! Remember your master password — " +
+          "it cannot be reset and is required (together with this wallet) to " +
+          "open your vault. Select " + net.label + " in the extension to use it."
       );
     } catch (error) {
       console.error("Error creating vault:", error);
       if (error.message && error.message.includes("Already registered")) {
-        alert("This wallet already has a vault.");
+        alert("This wallet already has a vault on " + currentNet().label + ".");
       } else {
         alert("Error creating vault: " + (error.message || error));
       }
