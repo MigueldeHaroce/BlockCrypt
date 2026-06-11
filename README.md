@@ -12,12 +12,8 @@ plain JavaScript:
 - **Ethers.js**: interaction with the Ethereum blockchain for decentralized
   storage and retrieval of the encrypted vault.
 - **EIP-6963 multi-wallet discovery**: works with **any** common browser wallet
-  (MetaMask, Coinbase Wallet, Rabby, Brave, Trust, …), not just MetaMask. The
-  extension popup reaches the page's wallet through a `chrome.scripting` bridge.
-
-Key files: `config.js` (contract address + ABI — single source of truth),
-`crypto.js` (vault encryption), `wallet.js` / `walletWeb.js` (wallet discovery),
-`smartcontract.js` (extension logic), `docs/keychainSingUp.js` (vault creation).
+  (MetaMask, Coinbase Wallet, Rabby, Brave, Trust, …). The extension popup
+  reaches the page's wallet through a `chrome.scripting` bridge.
 
 #### Decentralization and Security
 Your vault is tied to your **wallet address** and unlocked with a **master
